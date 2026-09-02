@@ -1,0 +1,242 @@
+name: B&R (Windows Only)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: Type of build (Debug or Release)
+        type: string
+        default: Release
+      create-release:
+        description: Create a GitHub Release with the artifacts?
+        type: boolean
+        default: true
+      pre-release:
+        description: Mark as pre-release?
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.artifact-name }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            artifact-name: Windows-MinGW-w64
+            cmake-preset: windows_mingw
+            msystem: CLANG64
+            vcvars-arch: amd64_x86
+
+          - os: windows-11-arm
+            artifact-name: Windows-MinGW-arm64
+            cmake-preset: windows_mingw
+            msystem: CLANGARM64
+            vcvars-arch: arm64
+
+          - os: windows-2022
+            artifact-name: Windows-MSVC
+            cmake-preset: windows_msvc
+            vcvars-arch: amd64
+            qt-version: 6.10.2
+
+          - os: windows-11-arm
+            artifact-name: Windows-MSVC-arm64
+            cmake-preset: windows_msvc
+            vcvars-arch: arm64
+            qt-version: 6.10.2
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.msystem != '' && 'msys2 {0}' || 'bash' }}
+
+    env:
+      ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
+      BUILD_PLATFORM: official
+      BUILD_TYPE: ${{ inputs.build-type || 'Release' }}
+      CMAKE_PRESET: ${{ matrix.cmake-preset }}
+      # MACOSX_DEPLOYMENT_TARGET is not needed for Windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup dependencies
+        id: setup-dependencies
+        uses: ./.github/actions/setup-dependencies
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+          artifact-name: ${{ matrix.artifact-name }}
+          msystem: ${{ matrix.msystem }}
+          vcvars-arch: ${{ matrix.vcvars-arch }}
+          qt-version: ${{ matrix.qt-version }}
+
+      - name: Configure project
+        run: cmake --preset "$CMAKE_PRESET"
+
+      - name: Run build
+        run: cmake --build --preset "$CMAKE_PRESET" --config "$BUILD_TYPE"
+
+      - name: Run tests
+        run: ctest --preset "$CMAKE_PRESET" --build-config "$BUILD_TYPE"
+
+      - name: Detect version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions/package/windows
+        env:
+          CI_HAS_ACCESS_TO_AZURE: ${{ vars.CI_HAS_ACCESS_TO_AZURE || '' }}
+        with:
+          version: ${{ steps.version.outputs.version }}
+          build-type: ${{ steps.setup-dependencies.outputs.build-type }}
+          artifact-name: ${{ matrix.artifact-name }}
+          msystem: ${{ matrix.msystem }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-24.04
+    needs: build
+
+    # always() makes this run even when one or more matrix builds fail.
+    if: ${{ always() && inputs.create-release == true }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download successful artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: false
+
+      - name: Show available artifacts
+        shell: bash
+        run: |
+          echo "Artifacts that successfully built:"
+
+          if [ -d artifacts ]; then
+            first_file=$(find artifacts -type f -print -quit)
+
+            if [ -n "$first_file" ]; then
+              find artifacts -type f -print
+            else
+              echo "No artifacts were produced."
+            fi
+          else
+            echo "No artifacts were produced."
+          fi
+
+      - name: Create release tag (if missing)
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          else
+            echo "Tag $TAG already exists, skipping creation."
+          fi
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+
+          TAG="${{ steps.version.outputs.version }}"
+
+          BODY="## Realms Launcher $TAG
+
+          This release was automatically built from commit ${{ github.sha }}.
+
+          **Build type:** ${{ inputs.build-type || 'Release' }}
+
+          ### 📦 Downloads
+          Download the appropriate package for your platform below.
+
+          > Some platforms may be unavailable if their build failed in CI.
+
+          ---
+          *Built with ❤️ by the Realms Launcher team.*"
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Creating release $TAG"
+
+            gh release create "$TAG" \
+              --title "Release" \
+              --notes "$BODY" \
+              --draft=false \
+              --prerelease=${{ inputs.pre-release == true && 'true' || 'false' }}
+          else
+            echo "Release $TAG already exists."
+          fi
+
+      - name: Upload successful release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+
+          TAG="${{ steps.version.outputs.version }}"
+
+          if [ ! -d artifacts ]; then
+            echo "No successful build artifacts to upload."
+            exit 0
+          fi
+
+          first_file=$(find artifacts -type f -print -quit)
+
+          if [ -z "$first_file" ]; then
+            echo "No successful build artifacts to upload."
+            exit 0
+          fi
+
+          find artifacts -type f -print
+
+          while IFS= read -r -d '' file; do
+            echo "Uploading $file..."
+            gh release upload "$TAG" "$file" --clobber
+            sleep 2
+          done < <(find artifacts -type f -print0)

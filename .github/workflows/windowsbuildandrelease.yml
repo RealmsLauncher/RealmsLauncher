@@ -68,7 +68,6 @@ jobs:
       BUILD_PLATFORM: official
       BUILD_TYPE: ${{ inputs.build-type || 'Release' }}
       CMAKE_PRESET: ${{ matrix.cmake-preset }}
-      # MACOSX_DEPLOYMENT_TARGET is not needed for Windows
 
     steps:
       - name: Checkout
@@ -117,12 +116,42 @@ jobs:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # --- NEW: Create a ZIP of the portable folder ---
+      - name: Create portable ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        id: zip_portable
+        run: |
+          # Find the portable directory (contains portable.txt)
+          $portableDir = Get-ChildItem -Path "$env:GITHUB_WORKSPACE" -Recurse -Filter "portable.txt" | Select-Object -First 1 | ForEach-Object { $_.Directory.FullName }
+          if (-not $portableDir) {
+            Write-Error "Portable directory not found"
+            exit 1
+          }
+          Write-Host "Portable directory: $portableDir"
+
+          $version = "${{ steps.version.outputs.version }}"
+          # Build a clean zip name including architecture and version
+          $zipName = "B&R-Windows-${{ matrix.artifact-name }}-Portable-$version.zip"
+          # Replace any characters that might cause issues in file names
+          $zipName = $zipName -replace '[^a-zA-Z0-9\-\.]', '-'
+
+          Compress-Archive -Path "$portableDir\*" -DestinationPath "$env:GITHUB_WORKSPACE\$zipName"
+          echo "ZIP_PATH=$env:GITHUB_WORKSPACE\$zipName" >> $env:GITHUB_ENV
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: Upload portable ZIP
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}-Portable-Zip
+          path: ${{ env.ZIP_PATH }}
+
   release:
     name: Create Release
     runs-on: ubuntu-24.04
     needs: build
 
-    # always() makes this run even when one or more matrix builds fail.
     if: ${{ always() && inputs.create-release == true }}
 
     permissions:
@@ -151,10 +180,8 @@ jobs:
         shell: bash
         run: |
           echo "Artifacts that successfully built:"
-
           if [ -d artifacts ]; then
             first_file=$(find artifacts -type f -print -quit)
-
             if [ -n "$first_file" ]; then
               find artifacts -type f -print
             else
@@ -167,7 +194,6 @@ jobs:
       - name: Create release tag (if missing)
         run: |
           TAG="${{ steps.version.outputs.version }}"
-
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -183,9 +209,7 @@ jobs:
         shell: bash
         run: |
           set -e
-
           TAG="${{ steps.version.outputs.version }}"
-
           BODY="## Realms Launcher $TAG
 
           This release was automatically built from commit ${{ github.sha }}.
@@ -202,7 +226,6 @@ jobs:
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             echo "Creating release $TAG"
-
             gh release create "$TAG" \
               --title "Release" \
               --notes "$BODY" \
@@ -212,31 +235,21 @@ jobs:
             echo "Release $TAG already exists."
           fi
 
+      # --- MODIFIED: Only upload .zip and *-Setup.exe ---
       - name: Upload successful release assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -e
-
           TAG="${{ steps.version.outputs.version }}"
-
           if [ ! -d artifacts ]; then
             echo "No successful build artifacts to upload."
             exit 0
           fi
-
-          first_file=$(find artifacts -type f -print -quit)
-
-          if [ -z "$first_file" ]; then
-            echo "No successful build artifacts to upload."
-            exit 0
-          fi
-
-          find artifacts -type f -print
-
-          while IFS= read -r -d '' file; do
+          # Upload only .zip files and the installer .exe files
+          find artifacts -type f \( -name "*.zip" -o -name "*-Setup.exe" \) -print0 | while IFS= read -r -d '' file; do
             echo "Uploading $file..."
             gh release upload "$TAG" "$file" --clobber
             sleep 2
-          done < <(find artifacts -type f -print0)
+          done

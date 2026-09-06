@@ -97,8 +97,10 @@ runs:
           "$INSTALL_APPIMAGE_DIR" \
           "$APPIMAGE_DEST"
 
-        # Move to workspace root for clean upload
-        mv "$APPIMAGE_DEST" "${{ github.workspace }}/"
+        # Move the AppImage to workspace root only if it's not already there
+        if [ -f "$APPIMAGE_DEST" ] && [ "$(realpath "$APPIMAGE_DEST")" != "$(realpath "${{ github.workspace }}/$APPIMAGE_DEST")" ]; then
+          mv "$APPIMAGE_DEST" "${{ github.workspace }}/"
+        fi
 
     - name: Package portable tarball
       shell: bash

@@ -10,7 +10,7 @@ Fork of [Prism Launcher](https://github.com/PrismLauncher/PrismLauncher) enablin
 
 ## Download
 
-Get the latest release from the [**Releases Page**](https://github.com/Diegiwg/PrismLauncher-Cracked/releases).
+Get the latest release from the [**Releases Page**](https://github.com/RealmsLauncher/RealmsLauncher/releases).
 
-> [!WARNING]
-> DO NOT use official Microsoft/Mojang accounts with this launcher. This bypasses authentication and is intended for offline play only. Using with official servers may violate Minecraft's Terms of Service.
+> [!INFO]
+> You can use official Microsoft/Mojang accounts with this launcher. This **does** bypasses authentication and is intended for offline play or known as “Cracked Minecraft” Using with official servers may violate Minecraft's Terms of Service (Without a Minecraft account).

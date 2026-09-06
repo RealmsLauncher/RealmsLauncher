@@ -143,18 +143,20 @@ runs:
         cd ${{ env.INSTALL_DIR }}
         makensis -NOCD "${{ github.workspace }}/${{ env.BUILD_DIR }}/program_info/win_install.nsi"
 
-        # Locate the generated setup executable (could be PrismLauncher-Setup.exe or RealmsLauncher-Setup.exe)
-        $setupFile = Get-ChildItem -Path . -Filter "*PrismLauncher-Setup*.exe" | Select-Object -First 1
-        if ($setupFile) {
-            $currentName = $setupFile.Name
-            $newName = "RealmsLauncher-Setup.exe"
-            if ($currentName -ne $newName) {
-                Rename-Item -Path $currentName -NewName $newName
-            }
-            Move-Item -Path $newName -Destination "${{ github.workspace }}\RealmsLauncher-Setup.exe" -Force
-        } else {
-            Write-Error "No PrismLauncher-Setup.exe found after makensis"
+        # Find any generated setup executable (could be PrismLauncher-Setup.exe or RealmsLauncher-Setup.exe)
+        $setupFile = Get-ChildItem -Path "${{ github.workspace }}" -Filter "*Setup.exe" | Select-Object -First 1
+        if (-not $setupFile) {
+            Write-Error "No Setup.exe found after makensis"
             exit 1
+        }
+        $currentName = $setupFile.Name
+        $newName = "RealmsLauncher-Setup.exe"
+        if ($currentName -ne $newName) {
+            Rename-Item -Path $setupFile.FullName -NewName $newName
+        }
+        # Move to workspace root if not already there
+        if ($setupFile.DirectoryName -ne "${{ github.workspace }}") {
+            Move-Item -Path "$($setupFile.DirectoryName)\$newName" -Destination "${{ github.workspace }}\$newName" -Force
         }
 
     - name: Sign installer

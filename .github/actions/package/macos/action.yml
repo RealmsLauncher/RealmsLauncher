@@ -62,6 +62,17 @@ runs:
         cmake --install ${{ env.BUILD_DIR }} --config ${{ inputs.build-type }}
 
         cd ${{ env.INSTALL_DIR }}
+
+        # Rename app if it's still PrismLauncher.app
+        if [ -d "PrismLauncher.app" ]; then
+          mv "PrismLauncher.app" "RealmsLauncher.app"
+        fi
+
+        # Rename binary inside if it's still prismlauncher
+        if [ -f "RealmsLauncher.app/Contents/MacOS/prismlauncher" ]; then
+          mv "RealmsLauncher.app/Contents/MacOS/prismlauncher" "RealmsLauncher.app/Contents/MacOS/realmslauncher"
+        fi
+
         chmod +x "RealmsLauncher.app/Contents/MacOS/realmslauncher"
 
         if [ -n '${{ inputs.apple-codesign-id }}' ]; then

@@ -70,17 +70,18 @@ jobs:
           # ---- macOS split ----
           - os: macos-15                # Apple Silicon (ARM64)
             artifact-name: macOS-AppleSilicon
-            cmake-preset: macos_arm64   # new preset
+            cmake-preset: macos_arm64
             macosx-deployment-target: 12.0
             qt-version: 6.9.3
 
-          - os: macos-13                # Intel (x86_64)
+          - os: macos-12                # Intel (x86_64) – macos-13 often has long queues, use macos-12 as fallback
             artifact-name: macOS-Intel
-            cmake-preset: macos_x86_64  # new preset
+            cmake-preset: macos_x86_64
             macosx-deployment-target: 12.0
             qt-version: 6.9.3
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 180   # 3 hours max to avoid hanging
 
     defaults:
       run:
@@ -171,8 +172,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs: build
 
-    # IMPORTANT:
-    # always() makes this run even when one or more matrix builds fail.
     if: ${{ always() && inputs.create-release == true }}
 
     permissions:

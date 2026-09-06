@@ -1,5 +1,10 @@
 project(application)
 
+# Ensure branding resource uses correct name for rebranding
+if(NOT DEFINED Launcher_Branding_LogoQRC)
+    set(Launcher_Branding_LogoQRC "realmslauncher.qrc")
+endif()
+
 ################################ FILES ################################
 
 ######## Sources and headers ########

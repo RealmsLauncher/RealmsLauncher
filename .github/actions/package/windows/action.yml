@@ -142,8 +142,20 @@ runs:
 
         cd ${{ env.INSTALL_DIR }}
         makensis -NOCD "${{ github.workspace }}/${{ env.BUILD_DIR }}/program_info/win_install.nsi"
-        # The installer is generated as PrismLauncher-Setup.exe, rename it
-        Rename-Item -Path "${{ github.workspace }}\PrismLauncher-Setup.exe" -NewName "RealmsLauncher-Setup.exe"
+
+        # Locate the generated setup executable (could be PrismLauncher-Setup.exe or RealmsLauncher-Setup.exe)
+        $setupFile = Get-ChildItem -Path . -Filter "*Setup.exe" | Select-Object -First 1
+        if ($setupFile) {
+            $currentName = $setupFile.Name
+            $newName = "RealmsLauncher-Setup.exe"
+            if ($currentName -ne $newName) {
+                Rename-Item -Path $currentName -NewName $newName
+            }
+            Move-Item -Path $newName -Destination "${{ github.workspace }}\RealmsLauncher-Setup.exe" -Force
+        } else {
+            Write-Error "No Setup.exe found after makensis"
+            exit 1
+        }
 
     - name: Sign installer
       if: ${{ env.CI_HAS_ACCESS_TO_AZURE != '' && inputs.azure-client-id != '' }}

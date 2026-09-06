@@ -43,45 +43,47 @@ jobs:
             cmake-preset: linux
             qt-version: 6.10.2
 
+          # ---- Windows (x64) ----
           - os: windows-2022
-            artifact-name: Windows-MinGW-w64
+            artifact-name: Windows-GNU          # MinGW
             cmake-preset: windows_mingw
             msystem: CLANG64
             vcvars-arch: amd64_x86
 
-          - os: windows-11-arm
-            artifact-name: Windows-MinGW-arm64
-            cmake-preset: windows_mingw
-            msystem: CLANGARM64
-            vcvars-arch: arm64
-
           - os: windows-2022
-            artifact-name: Windows-MSVC
+            artifact-name: Windows              # MSVC (default)
             cmake-preset: windows_msvc
             vcvars-arch: amd64
             qt-version: 6.10.2
 
+          # ---- Windows (ARM64) ----
           - os: windows-11-arm
-            artifact-name: Windows-MSVC-arm64
+            artifact-name: Windows-ARM-GNU      # MinGW ARM64
+            cmake-preset: windows_mingw
+            msystem: CLANGARM64
+            vcvars-arch: arm64
+
+          - os: windows-11-arm
+            artifact-name: Windows-ARM          # MSVC ARM64
             cmake-preset: windows_msvc
             vcvars-arch: arm64
             qt-version: 6.10.2
 
-          # ---- macOS split ----
-          - os: macos-15                # Apple Silicon (ARM64)
+          # ---- macOS ----
+          - os: macos-15
             artifact-name: macOS-AppleSilicon
             cmake-preset: macos_arm64
             macosx-deployment-target: 12.0
             qt-version: 6.9.3
 
-          - os: macos-12                # Intel (x86_64) – macos-13 often has long queues, use macos-12 as fallback
+          - os: macos-12
             artifact-name: macOS-Intel
             cmake-preset: macos_x86_64
             macosx-deployment-target: 12.0
             qt-version: 6.9.3
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 180   # 3 hours max to avoid hanging
+    timeout-minutes: 180
 
     defaults:
       run:
@@ -171,9 +173,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-24.04
     needs: build
-
     if: ${{ always() && inputs.create-release == true }}
-
     permissions:
       contents: write
 
@@ -200,15 +200,8 @@ jobs:
         shell: bash
         run: |
           echo "Artifacts that successfully built:"
-
           if [ -d artifacts ]; then
-            first_file=$(find artifacts -type f -print -quit)
-
-            if [ -n "$first_file" ]; then
-              find artifacts -type f -print
-            else
-              echo "No artifacts were produced."
-            fi
+            find artifacts -type f -print || echo "No artifacts were produced."
           else
             echo "No artifacts were produced."
           fi
@@ -216,7 +209,6 @@ jobs:
       - name: Create release tag (if missing)
         run: |
           TAG="${{ steps.version.outputs.version }}"
-
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -232,9 +224,7 @@ jobs:
         shell: bash
         run: |
           set -e
-
           TAG="${{ steps.version.outputs.version }}"
-
           BODY="## Realms Launcher $TAG
 
           This release was automatically built from commit ${{ github.sha }}.
@@ -251,7 +241,6 @@ jobs:
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             echo "Creating release $TAG"
-
             gh release create "$TAG" \
               --title "Release" \
               --notes "$BODY" \
@@ -267,23 +256,12 @@ jobs:
         shell: bash
         run: |
           set -e
-
           TAG="${{ steps.version.outputs.version }}"
-
           if [ ! -d artifacts ]; then
             echo "No successful build artifacts to upload."
             exit 0
           fi
-
-          first_file=$(find artifacts -type f -print -quit)
-
-          if [ -z "$first_file" ]; then
-            echo "No successful build artifacts to upload."
-            exit 0
-          fi
-
           find artifacts -type f -print
-
           while IFS= read -r -d '' file; do
             echo "Uploading $file..."
             gh release upload "$TAG" "$file" --clobber

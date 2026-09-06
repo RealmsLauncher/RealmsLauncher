@@ -59,6 +59,30 @@
             }
         },
         {
+            "name": "macos_arm64",
+            "displayName": "macOS (Apple Silicon)",
+            "inherits": [
+                "macos"
+            ],
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$penv{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
+            }
+        },
+        {
+            "name": "macos_x86_64",
+            "displayName": "macOS (Intel)",
+            "inherits": [
+                "macos"
+            ],
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$penv{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64",
+                "VCPKG_TARGET_TRIPLET": "x86_64-osx"
+            }
+        },
+        {
             "name": "windows_mingw",
             "displayName": "Windows (MinGW)",
             "inherits": [
@@ -114,6 +138,22 @@
                 "macos"
             ],
             "configurePreset": "macos_universal"
+        },
+        {
+            "name": "macos_arm64",
+            "displayName": "macOS (Apple Silicon)",
+            "inherits": [
+                "macos"
+            ],
+            "configurePreset": "macos_arm64"
+        },
+        {
+            "name": "macos_x86_64",
+            "displayName": "macOS (Intel)",
+            "inherits": [
+                "macos"
+            ],
+            "configurePreset": "macos_x86_64"
         },
         {
             "name": "windows_mingw",
@@ -191,6 +231,32 @@
                 "rhs": "Darwin"
             },
             "configurePreset": "macos_universal"
+        },
+        {
+            "name": "macos_arm64",
+            "displayName": "macOS (Apple Silicon)",
+            "inherits": [
+                "base"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "configurePreset": "macos_arm64"
+        },
+        {
+            "name": "macos_x86_64",
+            "displayName": "macOS (Intel)",
+            "inherits": [
+                "base"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "configurePreset": "macos_x86_64"
         },
         {
             "name": "windows_mingw",

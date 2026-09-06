@@ -126,13 +126,13 @@ class ThumbnailRunnable : public QRunnable {
             qDebug() << "Error loading screenshot (perhaps too large?):" + m_path;
             return;
         }
-        QImage small;
+        QImage thumbnail;
         if (image.width() > image.height()) {
-            small = image.scaledToWidth(512).scaledToWidth(256, Qt::SmoothTransformation);
+            thumbnail = image.scaledToWidth(512).scaledToWidth(256, Qt::SmoothTransformation);
         } else {
-            small = image.scaledToHeight(512).scaledToHeight(256, Qt::SmoothTransformation);
+            thumbnail = image.scaledToHeight(512).scaledToHeight(256, Qt::SmoothTransformation);
         }
-        const QPoint offset((256 - small.width()) / 2, (256 - small.height()) / 2);
+        const QPoint offset((256 - thumbnail.width()) / 2, (256 - thumbnail.height()) / 2);
         QImage square(QSize(256, 256), QImage::Format_ARGB32);
         square.fill(Qt::transparent);
 

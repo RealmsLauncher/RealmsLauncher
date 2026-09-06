@@ -55,7 +55,7 @@ AccountListPage::AccountListPage(QWidget* parent) : QMainWindow(parent), ui(new 
     ui->setupUi(this);
     ui->listView->setEmptyString(
         tr("Welcome!\n"
-           "This build uses offline accounts. Use \"Add Offline\" to create one."));
+           "If you're new here, you can select the \"Add Microsoft\" button to link your Microsoft account."));
     ui->listView->setEmptyMode(VersionListView::String);
     ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -71,7 +71,7 @@ AccountListPage::AccountListPage(QWidget* parent) : QMainWindow(parent), ui(new 
 
     QItemSelectionModel* selectionModel = ui->listView->selectionModel();
 
-    connect(selectionModel, &QItemSelectionModel::selectionChanged,
+    connect(selectionModel, &QItemSelectionModel::selectionChanged, this,
             [this]([[maybe_unused]] const QItemSelection& sel, [[maybe_unused]] const QItemSelection& dsel) { updateButtonStates(); });
     connect(ui->listView, &VersionListView::customContextMenuRequested, this, &AccountListPage::ShowContextMenu);
     connect(ui->listView, &VersionListView::activated, this,
@@ -83,10 +83,11 @@ AccountListPage::AccountListPage(QWidget* parent) : QMainWindow(parent), ui(new 
 
     updateButtonStates();
 
-    // This fork is offline-only.
-    ui->actionAddMicrosoft->setEnabled(false);
-    ui->actionAddMicrosoft->setToolTip(tr("This build uses offline accounts. Use \"Add Offline\"."));
-    ui->actionAddMicrosoft->setStatusTip(ui->actionAddMicrosoft->toolTip());
+    // Xbox authentication won't work without a client identifier, so disable the button if it is missing
+    if (~APPLICATION->capabilities() & Application::SupportsMSA) {
+        ui->actionAddMicrosoft->setVisible(false);
+        ui->actionAddMicrosoft->setToolTip(tr("No Microsoft Authentication client ID was set."));
+    }
 }
 
 AccountListPage::~AccountListPage()
@@ -139,14 +140,7 @@ void AccountListPage::on_actionAddMicrosoft_triggered()
 
 void AccountListPage::on_actionAddOffline_triggered()
 {
-    if (!m_accounts->anyAccountIsValid()) {
-        QMessageBox::warning(this, tr("Error"),
-                             tr("You must add a Microsoft account that owns Minecraft before you can add an offline account."
-                                "<br><br>"
-                                "If you have lost your account you can contact Microsoft for support."));
-        return;
-    }
-
+    // Allow adding offline accounts unconditionally in this fork.
     ChooseOfflineNameDialog dialog(tr("Please enter your desired username to add your offline account."), this);
     if (dialog.exec() != QDialog::Accepted) {
         return;

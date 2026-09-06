@@ -176,6 +176,13 @@ QString LaunchController::askOfflineName(const QString& playerName, bool* ok)
                     title = tr("No internet connection");
                     message = tr("You are not connected to the Internet, launching in offline mode.\n\n");
                 }
+            } else {
+                title = tr("Offline Mode - Limitations");
+                message = tr("Playing in offline mode has the following limitations:\n"
+                           "• Skins will not work (unless the server restores them)\n"
+                           "• You cannot join premium/online-mode servers (Hypixel, DonutSMP, CubeCraft, etc.)\n"
+                           "• You can only join servers that allow offline mode\n\n"
+                           "Choose your offline mode player name:");
             }
             message += tr("Choose your offline mode player name");
             break;
@@ -260,6 +267,18 @@ void LaunchController::login()
             }
             m_session->MakeOffline(name);
         }
+    } else if (m_actualLaunchMode == LaunchMode::Offline) {
+        // Show warning for offline accounts launching in offline mode
+        bool ok = false;
+        QString name = m_offlineName;
+        if (name.isEmpty()) {
+            name = askOfflineName(m_session->player_name, &ok);
+            if (!ok) {
+                emitAborted();
+                return;
+            }
+        }
+        m_session->MakeOffline(name);
     }
 
     launchInstance();

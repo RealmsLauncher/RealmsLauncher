@@ -181,12 +181,6 @@ runs:
         exclude-azure-developer-cli-credential: true
         exclude-interactive-browser-credential: true
 
-    - name: Upload binary zip (non-portable)
-      uses: actions/upload-artifact@v7
-      with:
-        name: RealmsLauncher-${{ inputs.artifact-name }}
-        path: install/**
-
     - name: Upload portable zip
       uses: actions/upload-artifact@v7
       with:

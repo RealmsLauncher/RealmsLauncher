@@ -137,7 +137,7 @@ class ThumbnailRunnable : public QRunnable {
         square.fill(Qt::transparent);
 
         QPainter painter(&square);
-        painter.drawImage(offset, small);
+        painter.drawImage(offset, thumbnail);
         painter.end();
 
         const QIcon icon(QPixmap::fromImage(square));

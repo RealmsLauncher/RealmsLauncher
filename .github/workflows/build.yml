@@ -67,9 +67,16 @@ jobs:
             vcvars-arch: arm64
             qt-version: 6.10.2
 
-          - os: macos-26
-            artifact-name: macOS
-            cmake-preset: macos_universal
+          # ---- macOS split ----
+          - os: macos-15                # Apple Silicon (ARM64)
+            artifact-name: macOS-AppleSilicon
+            cmake-preset: macos_arm64   # new preset
+            macosx-deployment-target: 12.0
+            qt-version: 6.9.3
+
+          - os: macos-13                # Intel (x86_64)
+            artifact-name: macOS-Intel
+            cmake-preset: macos_x86_64  # new preset
             macosx-deployment-target: 12.0
             qt-version: 6.9.3
 

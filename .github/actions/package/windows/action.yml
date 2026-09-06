@@ -10,7 +10,7 @@ inputs:
     required: true
     default: Debug
   artifact-name:
-    description: Name of the uploaded artifact
+    description: Name of the uploaded artifact (e.g., Windows, Windows-GNU)
     required: true
   msystem:
     description: MSYS2 subsystem to use
@@ -122,6 +122,7 @@ runs:
         INSTALL_PORTABLE_DIR: install-portable
       run: |
         Compress-Archive -Path ${{ env.INSTALL_PORTABLE_DIR }}\* -DestinationPath RealmsLauncher-portable.zip -Force
+        Rename-Item -Path RealmsLauncher-portable.zip -NewName "RealmsLauncher-${{ inputs.artifact-name }}-Portable.zip"
 
     - name: Package (installer)
       shell: pwsh
@@ -150,11 +151,10 @@ runs:
             exit 1
         }
         $currentName = $setupFile.Name
-        $newName = "RealmsLauncher-Setup.exe"
+        $newName = "RealmsLauncher-${{ inputs.artifact-name }}-Setup.exe"
         if ($currentName -ne $newName) {
             Rename-Item -Path $setupFile.FullName -NewName $newName
         }
-        # Move to workspace root if not already there
         if ($setupFile.DirectoryName -ne "${{ github.workspace }}") {
             Move-Item -Path "$($setupFile.DirectoryName)\$newName" -Destination "${{ github.workspace }}\$newName" -Force
         }
@@ -167,7 +167,7 @@ runs:
         trusted-signing-account-name: RealmsLauncher
         certificate-profile-name: RealmsLauncher
         files: |
-          ${{ github.workspace }}\RealmsLauncher-Setup.exe
+          ${{ github.workspace }}\RealmsLauncher-${{ inputs.artifact-name }}-Setup.exe
         timestamp-rfc3161: 'http://timestamp.acs.microsoft.com'
         timestamp-digest: 'SHA256'
         exclude-environment-credential: true
@@ -184,17 +184,17 @@ runs:
     - name: Upload binary zip (non-portable)
       uses: actions/upload-artifact@v7
       with:
-        name: RealmsLauncher-${{ inputs.artifact-name }}-${{ inputs.version }}-${{ inputs.build-type }}
+        name: RealmsLauncher-${{ inputs.artifact-name }}
         path: install/**
 
     - name: Upload portable zip
       uses: actions/upload-artifact@v7
       with:
-        name: RealmsLauncher-${{ inputs.artifact-name }}-Portable-${{ inputs.version }}-${{ inputs.build-type }}
-        path: RealmsLauncher-portable.zip
+        name: RealmsLauncher-${{ inputs.artifact-name }}-Portable
+        path: RealmsLauncher-${{ inputs.artifact-name }}-Portable.zip
 
     - name: Upload installer
       uses: actions/upload-artifact@v7
       with:
-        name: RealmsLauncher-${{ inputs.artifact-name }}-Setup-${{ inputs.version }}-${{ inputs.build-type }}
-        path: RealmsLauncher-Setup.exe
+        name: RealmsLauncher-${{ inputs.artifact-name }}-Setup
+        path: RealmsLauncher-${{ inputs.artifact-name }}-Setup.exe

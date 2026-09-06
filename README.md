@@ -1,6 +1,6 @@
 <p align="center">
 <picture>
-  <img alt="Realms Launcher" src="/program_info/realmslauncher.png” width="40%">
+  <img alt="Realms Launcher" src="/program_info/realmslauncher.png" width="40%">
 </picture>
 </p>
 

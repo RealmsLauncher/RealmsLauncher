@@ -191,13 +191,13 @@ jobs:
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Download successful artifacts
+      - name: Download Assets
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
           merge-multiple: false
 
-      - name: Show available artifacts
+      - name: Show Assets
         shell: bash
         run: |
           echo "Artifacts that successfully built:"
@@ -207,7 +207,7 @@ jobs:
             echo "No artifacts were produced."
           fi
 
-      - name: Create release tag (if missing)
+      - name: Create Tag
         run: |
           TAG="${{ steps.version.outputs.version }}"
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
@@ -251,7 +251,7 @@ jobs:
             echo "Release $TAG already exists."
           fi
 
-      - name: Upload successful release assets
+      - name: Upload Assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

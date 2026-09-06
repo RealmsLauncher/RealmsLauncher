@@ -33,6 +33,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ---- Linux ----
+          - os: ubuntu-24.04
+            artifact-name: Linux
+            cmake-preset: linux
+            qt-version: 6.10.2
+
+          - os: ubuntu-24.04-arm
+            artifact-name: Linux-aarch64
+            cmake-preset: linux
+            qt-version: 6.10.2
+
           # ---- Windows (x64) ----
           - os: windows-2022
             artifact-name: Windows-GNU          # MinGW (x64)

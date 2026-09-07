@@ -1047,6 +1047,9 @@ SET(LAUNCHER_SOURCES
     ui/pages/modplatform/modrinth/ModrinthResourcePages.cpp
     ui/pages/modplatform/modrinth/ModrinthResourcePages.h
 
+    ui/pages/global/LicensePage.cpp
+    ui/pages/global/LicensePage.h
+
     # GUI - dialogs
     ui/dialogs/AboutDialog.cpp
     ui/dialogs/AboutDialog.h

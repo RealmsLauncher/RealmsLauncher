@@ -1351,7 +1351,7 @@ void Application::performMainStartupAction()
         QString storedKey = m_settings->get("LicenseKey").toString();
         bool keyValid = false;
         if (!storedKey.isEmpty()) {
-            keyValid = m_licenseManager->validateLicense(storedKey);
+            keyValid = m_licenseManager->validate(storedKey);
         }
 
         if (!keyValid) {
@@ -1379,7 +1379,7 @@ void Application::performMainStartupAction()
                     QMessageBox::warning(nullptr, tr("Invalid Input"),
                         tr("License key cannot be empty. Please enter your key."));
                     ok = false; // loop again
-                } else if (!m_licenseManager->validateLicense(enteredKey)) {
+                } else if (!m_licenseManager->validate(enteredKey)) {
                     QMessageBox::warning(nullptr, tr("Invalid License"),
                         tr("The license key you entered is invalid.\n"
                            "Please check and try again."));

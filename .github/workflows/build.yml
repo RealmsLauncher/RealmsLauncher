@@ -24,6 +24,8 @@ permissions:
   contents: write
   packages: write
   id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   build:
@@ -38,11 +40,13 @@ jobs:
             artifact-name: Linux
             cmake-preset: linux
             qt-version: 6.10.2
+            appimage-arch: x86_64
 
           - os: ubuntu-24.04-arm
             artifact-name: Linux-aarch64
             cmake-preset: linux
             qt-version: 6.10.2
+            appimage-arch: aarch64
 
           # ---- Windows (x64) ----
           - os: windows-2022
@@ -140,6 +144,12 @@ jobs:
           qt-version: ${{ steps.setup-dependencies.outputs.qt-version }}
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-private-key-id: ${{ secrets.GPG_PRIVATE_KEY_ID }}
+
+      - name: Attest Linux AppImage
+        if: ${{ runner.os == 'Linux' && hashFiles(format('RealmsLauncher-Linux-{0}.AppImage', matrix.appimage-arch)) != '' }}
+        uses: actions/attest@v4
+        with:
+          subject-path: RealmsLauncher-Linux-${{ matrix.appimage-arch }}.AppImage
 
       - name: Package (macOS)
         if: ${{ runner.os == 'macOS' }}

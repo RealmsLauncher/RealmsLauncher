@@ -120,6 +120,9 @@ class Application : public QApplication {
 
     SettingsObject* settings() const { return m_settings.get(); }
 
+    // ----- INJECT DRM -----
+    LicenseManager* licenseManager() const { return m_licenseManager.get(); }
+
     qint64 timeSinceStart() const { return m_startTime.msecsTo(QDateTime::currentDateTime()); }
 
     QIcon logo();

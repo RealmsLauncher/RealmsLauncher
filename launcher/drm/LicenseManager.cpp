@@ -77,6 +77,79 @@ void LicenseManager::stopMonitoring()
     }
 }
 
+// =============================================================
+// NEW: Synchronous server validation – called once, returns bool
+// =============================================================
+bool LicenseManager::validate(const QString& key)
+{
+    if (key.trimmed().isEmpty()) {
+        qWarning() << "LicenseManager::validate() - Empty key";
+        return false;
+    }
+
+    // Write the SSH private key to a temp file
+    QString keyPath = writeTempPrivateKey();
+    if (keyPath.isEmpty()) {
+        qCritical() << "LicenseManager::validate() - Failed to write SSH key";
+        return false;
+    }
+
+    // Build the SSH command
+    QString sshCommand = QString("check %1 %2 %3")
+        .arg(key.trimmed())
+        .arg(m_deviceId)
+        .arg(m_deviceName);
+
+    QStringList sshArgs;
+    sshArgs << "-o" << "ConnectTimeout=10"
+            << "-o" << "StrictHostKeyChecking=accept-new"
+            << "-i" << keyPath
+            << "realmsnetwork@ssh-realmsnetwork.alwaysdata.net"
+            << sshCommand;
+
+    // Run SSH synchronously
+    QProcess process;
+    process.start("ssh", sshArgs);
+
+    // Wait up to 15 seconds for the server response
+    if (!process.waitForFinished(15000)) {
+        process.kill();
+        QFile::remove(keyPath);
+        qWarning() << "LicenseManager::validate() - SSH timed out";
+        return false;
+    }
+
+    // Clean up temp key
+    QFile::remove(keyPath);
+
+    // Check exit code
+    if (process.exitCode() != 0 || process.exitStatus() != QProcess::NormalExit) {
+        qWarning() << "LicenseManager::validate() - SSH failed with exit code:" << process.exitCode();
+        qWarning() << "Error output:" << process.readAllStandardError();
+        return false;
+    }
+
+    // Parse JSON response
+    QByteArray output = process.readAllStandardOutput();
+    QJsonDocument doc = QJsonDocument::fromJson(output);
+    if (doc.isNull()) {
+        qWarning() << "LicenseManager::validate() - Invalid JSON response:" << output;
+        return false;
+    }
+
+    QJsonObject obj = doc.object();
+    QString status = obj.value("status").toString();
+
+    bool valid = (status == "OK");
+    if (!valid) {
+        QString reason = obj.value("reason").toString();
+        qWarning() << "LicenseManager::validate() - Server rejected key:" << reason;
+    } else {
+        qDebug() << "LicenseManager::validate() - Key accepted by server.";
+    }
+    return valid;
+}
+
 void LicenseManager::performCheck()
 {
     if (!m_isRunning) return;

@@ -60,7 +60,7 @@ QIcon LicensePage::icon() const
 
 void LicensePage::load()
 {
-    m_currentKey = APPLICATION->settings()->get("LicenseKey", "").toString();
+    m_currentKey = APPLICATION->settings()->get("LicenseKey").toString();
     m_keyEdit->setText(m_currentKey);
     m_statusLabel->clear();
 }

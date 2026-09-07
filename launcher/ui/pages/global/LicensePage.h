@@ -7,7 +7,7 @@ class QLineEdit;
 class QLabel;
 class QPushButton;
 
-class LicensePage : public BasePage
+class LicensePage : public QWidget, public BasePage
 {
     Q_OBJECT
 public:

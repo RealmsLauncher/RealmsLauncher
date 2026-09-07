@@ -65,6 +65,27 @@ LaunchController::LaunchController() = default;
 
 void LaunchController::executeTask()
 {
+    // Never create or start a Minecraft launch task until the stored license
+    // has been validated successfully against the license server.
+    if (m_licenseManager) {
+        const QString licenseKey = APPLICATION->settings()->get("LicenseKey").toString().trimmed();
+        QString licenseReason;
+        if (!m_licenseManager->validate(licenseKey, &licenseReason)) {
+            if (licenseReason.isEmpty())
+                licenseReason = tr("The license could not be validated.");
+
+            qWarning() << "Launch blocked by license validation:" << licenseReason;
+            QMessageBox::critical(
+                m_parentWidget,
+                tr("License Invalid"),
+                tr("License Invalid\n\nReason: %1\n\nMinecraft was not started.").arg(licenseReason),
+                QMessageBox::Ok);
+            return;
+        }
+
+        m_licenseManager->startMonitoring(licenseKey);
+    }
+
     if (!m_instance) {
         emitFailed(tr("No instance specified!"));
         return;

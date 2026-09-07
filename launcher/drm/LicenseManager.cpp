@@ -15,9 +15,9 @@
 #include <winternl.h>
 #endif
 
-// ============================================================
-// YOUR ACTUAL PRIVATE KEY (Ed25519) – LOCKED TO CHECK ONLY
-// ============================================================
+// =============================================================
+// PRIVATE KEY (Ed25519) – LOCKED TO CHECK ONLY, NOT PLACEHOLDER
+// =============================================================
 static const char *EMBEDDED_PRIVATE_KEY =
     "-----BEGIN OPENSSH PRIVATE KEY-----\n"
     "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\n"

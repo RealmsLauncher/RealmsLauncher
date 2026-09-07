@@ -12,10 +12,13 @@ class LicensePage : public BasePage
     Q_OBJECT
 public:
     explicit LicensePage(QWidget* parent = nullptr);
+
     QString displayName() const override { return tr("License"); }
     QIcon icon() const override;
-    void load() override;
-    void save() override;
+    QString id() const override { return "license"; }
+
+    void load();
+    void save();
     void retranslate() override;
 
 private slots:

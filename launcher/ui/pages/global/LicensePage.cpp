@@ -60,7 +60,6 @@ void LicensePage::save()
     QString newKey = m_keyEdit->text().trimmed();
     if (newKey != m_currentKey)
     {
-        // Validate before saving
         if (LicenseManager::validate(newKey))
         {
             m_settings->set("LicenseKey", newKey);
@@ -70,7 +69,6 @@ void LicensePage::save()
         else
         {
             m_statusLabel->setText(tr("✗ Invalid license key. Please try again."));
-            // Don't save invalid key
         }
     }
 }
@@ -86,7 +84,6 @@ void LicensePage::onValidateClicked()
     if (LicenseManager::validate(key))
     {
         m_statusLabel->setText(tr("✓ License key is valid."));
-        // Optionally save immediately
         m_settings->set("LicenseKey", key);
         m_currentKey = key;
     }

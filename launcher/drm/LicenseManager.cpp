@@ -77,26 +77,29 @@ void LicenseManager::stopMonitoring()
     }
 }
 
-// =============================================================
-// NEW: Synchronous server validation – called once, returns bool
-// =============================================================
-bool LicenseManager::validate(const QString& key)
+bool LicenseManager::validate(const QString& key, QString* reason)
 {
-    if (key.trimmed().isEmpty()) {
+    if (reason)
+        reason->clear();
+
+    const QString trimmedKey = key.trimmed();
+    if (trimmedKey.isEmpty()) {
+        if (reason)
+            *reason = "No license key has been configured.";
         qWarning() << "LicenseManager::validate() - Empty key";
         return false;
     }
 
-    // Write the SSH private key to a temp file
     QString keyPath = writeTempPrivateKey();
     if (keyPath.isEmpty()) {
+        if (reason)
+            *reason = "Could not prepare the license validator.";
         qCritical() << "LicenseManager::validate() - Failed to write SSH key";
         return false;
     }
 
-    // Build the SSH command
     QString sshCommand = QString("check %1 %2 %3")
-        .arg(key.trimmed())
+        .arg(trimmedKey)
         .arg(m_deviceId)
         .arg(m_deviceName);
 
@@ -107,47 +110,51 @@ bool LicenseManager::validate(const QString& key)
             << "realmsnetwork@ssh-realmsnetwork.alwaysdata.net"
             << sshCommand;
 
-    // Run SSH synchronously
     QProcess process;
     process.start("ssh", sshArgs);
 
-    // Wait up to 15 seconds for the server response
     if (!process.waitForFinished(15000)) {
         process.kill();
         QFile::remove(keyPath);
+        if (reason)
+            *reason = "Could not reach the license server.";
         qWarning() << "LicenseManager::validate() - SSH timed out";
         return false;
     }
 
-    // Clean up temp key
     QFile::remove(keyPath);
 
-    // Check exit code
     if (process.exitCode() != 0 || process.exitStatus() != QProcess::NormalExit) {
+        if (reason)
+            *reason = "Could not reach the license server.";
         qWarning() << "LicenseManager::validate() - SSH failed with exit code:" << process.exitCode();
         qWarning() << "Error output:" << process.readAllStandardError();
         return false;
     }
 
-    // Parse JSON response
     QByteArray output = process.readAllStandardOutput();
     QJsonDocument doc = QJsonDocument::fromJson(output);
-    if (doc.isNull()) {
+    if (doc.isNull() || !doc.isObject()) {
+        if (reason)
+            *reason = "The license server returned an invalid response.";
         qWarning() << "LicenseManager::validate() - Invalid JSON response:" << output;
         return false;
     }
 
     QJsonObject obj = doc.object();
     QString status = obj.value("status").toString();
-
-    bool valid = (status == "OK");
-    if (!valid) {
-        QString reason = obj.value("reason").toString();
-        qWarning() << "LicenseManager::validate() - Server rejected key:" << reason;
-    } else {
+    if (status == "OK") {
         qDebug() << "LicenseManager::validate() - Key accepted by server.";
+        return true;
     }
-    return valid;
+
+    QString serverReason = obj.value("reason").toString().trimmed();
+    if (serverReason.isEmpty())
+        serverReason = "The license was rejected by the license server.";
+    if (reason)
+        *reason = serverReason;
+    qWarning() << "LicenseManager::validate() - Server rejected key:" << serverReason;
+    return false;
 }
 
 void LicenseManager::performCheck()

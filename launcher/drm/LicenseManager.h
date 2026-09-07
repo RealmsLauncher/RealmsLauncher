@@ -22,6 +22,7 @@ public:
     explicit LicenseManager(QObject *parent = nullptr);
     ~LicenseManager();
 
+    bool validate(const QString& key);
     void addTargetJavaSession(const QString &sessionId);
     void removeTargetJavaSession(const QString &sessionId);
     void startMonitoring(const QString &licenseKey);

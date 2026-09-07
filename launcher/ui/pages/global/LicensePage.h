@@ -23,10 +23,12 @@ public:
 
 private slots:
     void onValidateClicked();
+    void onResetClicked();
 
 private:
     QLineEdit* m_keyEdit;
     QLabel* m_statusLabel;
     QPushButton* m_validateButton;
+    QPushButton* m_resetButton;
     QString m_currentKey;
 };

@@ -11,7 +11,7 @@
 #include "settings/INISettingsObject.h"
 #include "Application.h"   // for global APPLICATION pointer
 
-LicensePage::LicensePage(QWidget* parent) : BasePage(parent)
+LicensePage::LicensePage(QWidget* parent) : QWidget(parent), BasePage()
 {
     QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -60,7 +60,7 @@ QIcon LicensePage::icon() const
 
 void LicensePage::load()
 {
-    m_currentKey = m_settings->get("LicenseKey", "").toString();
+    m_currentKey = APPLICATION->settings()->get("LicenseKey", "").toString();
     m_keyEdit->setText(m_currentKey);
     m_statusLabel->clear();
 }
@@ -73,7 +73,7 @@ void LicensePage::save()
         LicenseManager* lm = APPLICATION->licenseManager();
         if (!newKey.isEmpty() && lm->validate(newKey))
         {
-            m_settings->set("LicenseKey", newKey);
+            APPLICATION->settings()->set("LicenseKey", newKey);
             m_currentKey = newKey;
             lm->startMonitoring(newKey);
             m_statusLabel->setText(tr("✓ License key is valid and saved."));
@@ -106,7 +106,7 @@ void LicensePage::onValidateClicked()
     if (lm->validate(key))
     {
         m_statusLabel->setText(tr("✓ License key is valid. Saving and starting monitoring..."));
-        m_settings->set("LicenseKey", key);
+        APPLICATION->settings()->set("LicenseKey", key);
         m_currentKey = key;
         lm->startMonitoring(key);
     }
@@ -130,7 +130,7 @@ void LicensePage::onResetClicked()
     if (reply == QMessageBox::Yes)
     {
         // Clear key from settings
-        m_settings->set("LicenseKey", "");
+        APPLICATION->settings()->set("LicenseKey", "");
         m_currentKey.clear();
         m_keyEdit->clear();
         m_statusLabel->setText(tr("License key cleared. The launcher will now close."));

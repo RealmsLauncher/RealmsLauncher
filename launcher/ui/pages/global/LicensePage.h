@@ -9,7 +9,6 @@ class QPushButton;
 
 class LicensePage : public QWidget, public BasePage
 {
-    Q_OBJECT
 public:
     explicit LicensePage(QWidget* parent = nullptr);
 
@@ -21,11 +20,10 @@ public:
     void save();
     void retranslate() override;
 
-private slots:
+private:
     void onValidateClicked();
     void onResetClicked();
 
-private:
     QLineEdit* m_keyEdit;
     QLabel* m_statusLabel;
     QPushButton* m_validateButton;

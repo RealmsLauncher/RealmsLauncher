@@ -1,7 +1,7 @@
 #!/bin/bash
 
 LAUNCHER_APPID="org.realmslauncher.RealmsLauncher"
-LAUNCHER_NAME="RealmsLauncher"
+LAUNCHER_BINARY="realmslauncher"
 
 svg2png() {
     input_file="$1"
@@ -16,24 +16,24 @@ if command -v "inkscape" && command -v "icotool" && command -v "oxipng"; then
     # Windows ICO
     d=$(mktemp -d)
 
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_16.png" 16 16
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_24.png" 24 24
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_32.png" 32 32
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_48.png" 48 48
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_64.png" 64 64
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_128.png" 128 128
-    svg2png ${LAUNCHER_APPID}.svg "$d/${LAUNCHER_NAME}_256.png" 256 256
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_16.png" 16 16
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_24.png" 24 24
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_32.png" 32 32
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_48.png" 48 48
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_64.png" 64 64
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_128.png" 128 128
+    svg2png "${LAUNCHER_APPID}.svg" "$d/${LAUNCHER_BINARY}_256.png" 256 256
 
-    oxipng --opt max --strip all --alpha --interlace 0 "$d/${LAUNCHER_NAME}_"*".png"
+    oxipng --opt max --strip all --alpha --interlace 0 "$d/${LAUNCHER_BINARY}_"*".png"
 
-    rm -f ${LAUNCHER_NAME}.ico && icotool -o ${LAUNCHER_NAME}.ico -c \
-        "$d/${LAUNCHER_NAME}_256.png" \
-        "$d/${LAUNCHER_NAME}_128.png" \
-        "$d/${LAUNCHER_NAME}_64.png" \
-        "$d/${LAUNCHER_NAME}_48.png" \
-        "$d/${LAUNCHER_NAME}_32.png" \
-        "$d/${LAUNCHER_NAME}_24.png" \
-        "$d/${LAUNCHER_NAME}_16.png"
+    rm -f ${LAUNCHER_BINARY}.ico && icotool -o ${LAUNCHER_BINARY}.ico -c \
+        "$d/${LAUNCHER_BINARY}_256.png" \
+        "$d/${LAUNCHER_BINARY}_128.png" \
+        "$d/${LAUNCHER_BINARY}_64.png" \
+        "$d/${LAUNCHER_BINARY}_48.png" \
+        "$d/${LAUNCHER_BINARY}_32.png" \
+        "$d/${LAUNCHER_BINARY}_24.png" \
+        "$d/${LAUNCHER_BINARY}_16.png"
 else
     echo "ERROR: Windows icons were NOT generated!" >&2
     echo "ERROR: requires inkscape, icotool and oxipng in PATH"
@@ -42,28 +42,34 @@ fi
 if command -v "inkscape" && command -v "iconutil" && command -v "oxipng"; then
     # macOS ICNS
     d=$(mktemp -d)
-    d="$d/${LAUNCHER_NAME}.iconset"
+    d="$d/${LAUNCHER_BINARY}.iconset"
     mkdir -p "$d"
 
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_16x16.png" 16 16
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_16x16@2x.png" 32 32
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_32x32.png" 32 32
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_32x32@2x.png" 64 64
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_128x128.png" 128 128
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_128x128@2x.png" 256 256
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_256x256.png" 256 256
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_256x256@2x.png" 512 512
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_512x512.png" 512 512
-    svg2png ${LAUNCHER_APPID}.bigsur.svg "$d/icon_512x512@2x.png" 1024 1024
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_16x16.png" 16 16
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_16x16@2x.png" 32 32
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_32x32.png" 32 32
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_32x32@2x.png" 64 64
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_128x128.png" 128 128
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_128x128@2x.png" 256 256
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_256x256.png" 256 256
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_256x256@2x.png" 512 512
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_512x512.png" 512 512
+    svg2png "${LAUNCHER_APPID}.bigsur.svg" "$d/icon_512x512@2x.png" 1024 1024
 
     oxipng --opt max --strip all --alpha --interlace 0 "$d/icon_"*".png"
 
     iconutil -c icns "$d"
-    cp -v "$d/${LAUNCHER_NAME}.icns" .
+    cp -v "$d/${LAUNCHER_BINARY}.icns" .
 else
     echo "ERROR: macOS icons were NOT generated!" >&2
     echo "ERROR: requires inkscape, iconutil and oxipng in PATH"
 fi
 
+# Linux desktop icon. This is the file referenced by program_info/CMakeLists.txt.
+if command -v "inkscape" && command -v "oxipng"; then
+    svg2png "${LAUNCHER_APPID}.svg" "${LAUNCHER_APPID}_256.png" 256 256
+    oxipng --opt max --strip all --alpha --interlace 0 "${LAUNCHER_APPID}_256.png"
+fi
+
 # Keep the launcher theme icon in sync with the program branding.
-cp -v ${LAUNCHER_APPID}.svg "../launcher/resources/multimc/scalable/launcher.svg"
+cp -v "${LAUNCHER_APPID}.svg" "../launcher/resources/multimc/scalable/launcher.svg"

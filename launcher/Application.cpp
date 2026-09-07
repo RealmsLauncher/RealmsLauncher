@@ -102,6 +102,8 @@
 #include <QStyleFactory>
 #include <QTranslator>
 #include <QWindow>
+#include <QInputDialog>
+#include <QMessageBox>
 
 #include "InstanceList.h"
 #include "MTPixmapCache.h"
@@ -161,6 +163,7 @@
 #endif
 
 #include "console/Console.h"
+#include "drm/LicenseManager.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -914,6 +917,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
             m_globalSettingsProvider->addPage<APIPage>();
             m_globalSettingsProvider->addPage<ExternalToolsPage>();
             m_globalSettingsProvider->addPage<ProxyPage>();
+            // Add LicensePage
+            m_globalSettingsProvider->addPage<LicensePage>();
         }
 
         PixmapCache::setInstance(new PixmapCache(this));
@@ -1079,7 +1084,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
                               "Target install path: %5\n"
                               "Data Path: %6"
                               "\n"
-                              "This likely means that a update attempt failed. Please ensure your installation is in working order before "
+                              "This likely means that an update attempt failed. Please ensure your installation is in working order before "
                               "proceeding.\n"
                               "Check the Prism Launcher updater log at: \n"
                               "%7\n"
@@ -1340,6 +1345,56 @@ void Application::setupWizardFinished(int status)
 void Application::performMainStartupAction()
 {
     m_status = Application::Initialized;
+
+    // ---- License key check (first startup / missing key) ----
+    if (m_licenseManager) {
+        QString storedKey = m_settings->get("LicenseKey").toString();
+        bool keyValid = false;
+        if (!storedKey.isEmpty()) {
+            keyValid = m_licenseManager->validate(storedKey);
+        }
+
+        if (!keyValid) {
+            // Prompt for license key
+            bool ok = false;
+            QString enteredKey;
+            do {
+                enteredKey = QInputDialog::getText(nullptr,
+                    tr("License Required"),
+                    tr("This launcher is whitelisted and intended only for authorized users.\n"
+                       "If you obtained this launcher without permission, it will not function.\n\n"
+                       "Please enter your license key to continue."),
+                    QLineEdit::Password,
+                    QString(),
+                    &ok);
+                if (!ok) {
+                    // User cancelled – exit
+                    QMessageBox::critical(nullptr, tr("License Required"),
+                        tr("You must enter a valid license key to use this launcher.\n"
+                           "The application will now exit."));
+                    QApplication::quit();
+                    return;
+                }
+                if (enteredKey.isEmpty()) {
+                    QMessageBox::warning(nullptr, tr("Invalid Input"),
+                        tr("License key cannot be empty. Please enter your key."));
+                    ok = false; // loop again
+                } else if (!m_licenseManager->validate(enteredKey)) {
+                    QMessageBox::warning(nullptr, tr("Invalid License"),
+                        tr("The license key you entered is invalid.\n"
+                           "Please check and try again."));
+                    ok = false; // loop again
+                } else {
+                    // Valid key
+                    m_settings->set("LicenseKey", enteredKey);
+                    m_licenseManager->startMonitoring(enteredKey);
+                    qInfo() << "License key validated and stored.";
+                    ok = true;
+                }
+            } while (!ok);
+        }
+    }
+
     if (!m_instanceIdToLaunch.isEmpty()) {
         auto inst = instances()->getInstanceById(m_instanceIdToLaunch);
         if (inst) {
@@ -1466,7 +1521,7 @@ void Application::messageReceived(const QByteArray& message)
         if (!id.isEmpty()) {
             instance = instances()->getInstanceById(id);
             if (!instance) {
-                qWarning() << "Launch command requires an valid instance ID. " << id << "resolves to nothing.";
+                qWarning() << "Launch command requires a valid instance ID. " << id << "resolves to nothing.";
                 return;
             }
         } else {

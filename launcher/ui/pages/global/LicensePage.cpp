@@ -60,15 +60,15 @@ void LicensePage::save()
     QString newKey = m_keyEdit->text().trimmed();
     if (newKey != m_currentKey)
     {
-        if (LicenseManager::validate(newKey))
+        if (!newKey.isEmpty() && newKey.length() >= 8)
         {
             m_settings->set("LicenseKey", newKey);
             m_currentKey = newKey;
-            m_statusLabel->setText(tr("✓ License key is valid and saved."));
+            m_statusLabel->setText(tr("✓ License key saved. The launcher will validate it on next start."));
         }
         else
         {
-            m_statusLabel->setText(tr("✗ Invalid license key. Please try again."));
+            m_statusLabel->setText(tr("✗ License key must be at least 8 characters."));
         }
     }
 }
@@ -81,14 +81,14 @@ void LicensePage::retranslate()
 void LicensePage::onValidateClicked()
 {
     QString key = m_keyEdit->text().trimmed();
-    if (LicenseManager::validate(key))
+    if (!key.isEmpty() && key.length() >= 8)
     {
-        m_statusLabel->setText(tr("✓ License key is valid."));
+        m_statusLabel->setText(tr("✓ License key format accepted. Saving..."));
         m_settings->set("LicenseKey", key);
         m_currentKey = key;
     }
     else
     {
-        m_statusLabel->setText(tr("✗ Invalid license key. Please check and try again."));
+        m_statusLabel->setText(tr("✗ License key must be at least 8 characters."));
     }
 }

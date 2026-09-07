@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/program_info/org.realmslauncher.RealmsLauncher.logo.png" alt="Realms Launcher" width="128">
+  <img src="/program_info/org.realmslauncher.RealmsLauncher.logo.png" alt="Realms Launcher">
 </p>
 
 <h1 align="center">Realms Launcher</h1>

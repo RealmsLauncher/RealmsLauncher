@@ -61,9 +61,11 @@ runs:
           return 1
         }
 
+        # sharun's current release is v0.8.1. The asset is not available from
+        # a release named "latest"/empty, so pin the release explicitly.
         download_release_asset \
           VHSgunzo/sharun \
-          "" \
+          v0.8.1 \
           "sharun-$APPIMAGE_ARCH-aio" \
           ~/bin/sharun
 
@@ -76,7 +78,7 @@ runs:
 
         download_release_asset \
           AppImageCommunity/AppImageUpdate \
-          "" \
+          latest \
           "AppImageUpdate-$APPIMAGE_ARCH.AppImage" \
           ~/bin/AppImageUpdate.AppImage
 

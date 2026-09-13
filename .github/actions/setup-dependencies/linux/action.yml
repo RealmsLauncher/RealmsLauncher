@@ -46,11 +46,21 @@ runs:
 
           for attempt in 1 2 3 4 5; do
             rm -f "$output"
-            if gh release download "$release" \
-              --repo "$repo" \
-              --pattern "$pattern" \
-              --output "$output"; then
-              return 0
+
+            if [ -n "$release" ]; then
+              if gh release download "$release" \
+                --repo "$repo" \
+                --pattern "$pattern" \
+                --output "$output"; then
+                return 0
+              fi
+            else
+              if gh release download \
+                --repo "$repo" \
+                --pattern "$pattern" \
+                --output "$output"; then
+                return 0
+              fi
             fi
 
             echo "Download failed for $repo/$pattern (attempt $attempt/5); retrying..."
@@ -61,8 +71,6 @@ runs:
           return 1
         }
 
-        # sharun's current release is v0.8.1. The asset is not available from
-        # a release named "latest"/empty, so pin the release explicitly.
         download_release_asset \
           VHSgunzo/sharun \
           v0.8.1 \
@@ -78,7 +86,7 @@ runs:
 
         download_release_asset \
           AppImageCommunity/AppImageUpdate \
-          latest \
+          "" \
           "AppImageUpdate-$APPIMAGE_ARCH.AppImage" \
           ~/bin/AppImageUpdate.AppImage
 

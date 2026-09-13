@@ -1,0 +1,211 @@
+name: Linux Build & Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: Type of build (Debug or Release)
+        type: string
+        default: Release
+      create-release:
+        description: Create a GitHub Release with the artifacts?
+        type: boolean
+        default: true
+      pre-release:
+        description: Mark as pre-release?
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.artifact-name }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact-name: Linux
+            cmake-preset: linux
+            qt-version: 6.10.2
+            appimage-arch: x86_64
+
+          - os: ubuntu-24.04-arm
+            artifact-name: Linux-aarch64
+            cmake-preset: linux
+            qt-version: 6.10.2
+            appimage-arch: aarch64
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
+      BUILD_PLATFORM: official
+      BUILD_TYPE: ${{ inputs.build-type || 'Release' }}
+      CMAKE_PRESET: ${{ matrix.cmake-preset }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup dependencies
+        id: setup-dependencies
+        uses: ./.github/actions/setup-dependencies
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+          artifact-name: ${{ matrix.artifact-name }}
+          qt-version: ${{ matrix.qt-version }}
+
+      - name: Configure project
+        run: cmake --preset "$CMAKE_PRESET"
+
+      - name: Run build
+        run: cmake --build --preset "$CMAKE_PRESET" --config "$BUILD_TYPE"
+
+      - name: Run tests
+        run: ctest --preset "$CMAKE_PRESET" --build-config "$BUILD_TYPE"
+
+      - name: Detect version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package (Linux)
+        uses: ./.github/actions/package/linux
+        with:
+          version: ${{ steps.version.outputs.version }}
+          build-type: ${{ steps.setup-dependencies.outputs.build-type }}
+          artifact-name: ${{ matrix.artifact-name }}
+          qt-version: ${{ steps.setup-dependencies.outputs.qt-version }}
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-private-key-id: ${{ secrets.GPG_PRIVATE_KEY_ID }}
+
+      - name: Attest Linux AppImage
+        if: ${{ hashFiles(format('RealmsLauncher-Linux-{0}.AppImage', matrix.appimage-arch)) != '' }}
+        uses: actions/attest@v4
+        with:
+          subject-path: RealmsLauncher-Linux-${{ matrix.appimage-arch }}.AppImage
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-24.04
+    needs: build
+    if: ${{ always() && inputs.create-release == true }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download Assets
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: false
+
+      - name: Show Assets
+        shell: bash
+        run: |
+          echo "Artifacts that successfully built:"
+          if [ -d artifacts ]; then
+            find artifacts -type f -print || echo "No artifacts were produced."
+          else
+            echo "No artifacts were produced."
+          fi
+
+      - name: Create Tag
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          else
+            echo "Tag $TAG already exists, skipping creation."
+          fi
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+          TAG="${{ steps.version.outputs.version }}"
+          BODY="## Realms Launcher $TAG
+
+          This release was automatically built from commit ${{ github.sha }}.
+
+          **Build type:** ${{ inputs.build-type || 'Release' }}
+
+          ### 📦 Linux Downloads
+          Download the appropriate Linux AppImage below.
+
+          > Some architectures may be unavailable if their build failed in CI.
+
+          ---
+          *Built with ❤️ by the Realms Launcher team.*"
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Creating release $TAG"
+            gh release create "$TAG" \
+              --title "Release" \
+              --notes "$BODY" \
+              --draft=false \
+              --prerelease=${{ inputs.pre-release == true && 'true' || 'false' }}
+          else
+            echo "Release $TAG already exists."
+          fi
+
+      - name: Upload Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+          TAG="${{ steps.version.outputs.version }}"
+          if [ ! -d artifacts ]; then
+            echo "No successful build artifacts to upload."
+            exit 0
+          fi
+
+          find artifacts -type f \( \
+            -name "*.AppImage" -o \
+            -name "*.AppImage.zsync" -o \
+            -name "*.tar.gz" \
+          \) -print0 | while IFS= read -r -d '' file; do
+            echo "Uploading $file..."
+            gh release upload "$TAG" "$file" --clobber
+            sleep 2
+          done

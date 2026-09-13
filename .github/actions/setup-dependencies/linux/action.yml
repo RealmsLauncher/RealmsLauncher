@@ -20,6 +20,8 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        mkdir -p ~/bin
+
         # Determinate AppImage architecture to use
         dpkg_arch="$(dpkg-architecture -q DEB_HOST_ARCH_CPU)"
         case "$dpkg_arch" in
@@ -30,25 +32,53 @@ runs:
             APPIMAGE_ARCH="aarch64"
             ;;
           *)
-            echo "# 🚨 The Debian architecture \"$deb_arch\" is not recognized!" >> "$GITHUB_STEP_SUMMARY"
+            echo "# 🚨 The Debian architecture \"$dpkg_arch\" is not recognized!" >> "$GITHUB_STEP_SUMMARY"
             exit 1
             ;;
         esac
 
-        gh release download \
-          --repo VHSgunzo/sharun \
-          --pattern "sharun-$APPIMAGE_ARCH-aio" \
-          --output ~/bin/sharun
+        download_release_asset() {
+          local repo="$1"
+          local release="$2"
+          local pattern="$3"
+          local output="$4"
+          local attempt
+
+          for attempt in 1 2 3 4 5; do
+            rm -f "$output"
+            if gh release download "$release" \
+              --repo "$repo" \
+              --pattern "$pattern" \
+              --output "$output"; then
+              return 0
+            fi
+
+            echo "Download failed for $repo/$pattern (attempt $attempt/5); retrying..."
+            sleep $((attempt * 3))
+          done
+
+          echo "Failed to download $repo/$pattern after 5 attempts."
+          return 1
+        }
+
+        download_release_asset \
+          VHSgunzo/sharun \
+          latest \
+          "sharun-$APPIMAGE_ARCH-aio" \
+          ~/bin/sharun
 
         # FIXME!: revert this to probonopd/go-appimage once https://github.com/probonopd/go-appimage/pull/377 is merged!
-        gh release download continuous \
-          --repo DioEgizio/go-appimage \
-          --pattern "mkappimage-*-$APPIMAGE_ARCH.AppImage" \
-          --output ~/bin/mkappimage
+        download_release_asset \
+          DioEgizio/go-appimage \
+          continuous \
+          "mkappimage-*-$APPIMAGE_ARCH.AppImage" \
+          ~/bin/mkappimage
 
-        gh release download \
-          --repo AppImageCommunity/AppImageUpdate \
-          --pattern "AppImageUpdate-$APPIMAGE_ARCH.AppImage" \
-          --output ~/bin/AppImageUpdate.AppImage
+        download_release_asset \
+          AppImageCommunity/AppImageUpdate \
+          latest \
+          "AppImageUpdate-$APPIMAGE_ARCH.AppImage" \
+          ~/bin/AppImageUpdate.AppImage
+
         chmod +x ~/bin/*
         echo "$HOME/bin" >> "$GITHUB_PATH"

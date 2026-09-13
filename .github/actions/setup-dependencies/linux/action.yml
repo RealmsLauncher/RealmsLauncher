@@ -63,7 +63,7 @@ runs:
 
         download_release_asset \
           VHSgunzo/sharun \
-          latest \
+          "" \
           "sharun-$APPIMAGE_ARCH-aio" \
           ~/bin/sharun
 
@@ -76,7 +76,7 @@ runs:
 
         download_release_asset \
           AppImageCommunity/AppImageUpdate \
-          latest \
+          "" \
           "AppImageUpdate-$APPIMAGE_ARCH.AppImage" \
           ~/bin/AppImageUpdate.AppImage
 

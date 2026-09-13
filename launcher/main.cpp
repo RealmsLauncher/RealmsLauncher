@@ -48,6 +48,16 @@ int main(int argc, char* argv[])
     console::WindowsConsoleGuard _consoleGuard;
 #endif
 
+#if defined Q_OS_LINUX
+    // Some Linux environments, notably ChromeOS/Crostini, expose a broken
+    // Wayland compositor through the Linux VM. Prefer XWayland/X11 there so
+    // Qt does not lose its Wayland connection after receiving invalid output
+    // enter events.
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") && !qEnvironmentVariableIsEmpty("APPIMAGE")) {
+        qputenv("QT_QPA_PLATFORM", "xcb");
+    }
+#endif
+
     // initialize Qt
     Application app(argc, argv);
     switch (app.status()) {

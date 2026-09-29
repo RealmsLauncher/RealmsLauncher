@@ -193,20 +193,6 @@ void ThemeManager::initializeWidgets()
 void ThemeManager::initializeBundledThemes(ITheme* baseTheme)
 {
     constexpr auto resourceRootPath = ":/bundled-prism-themes";
-    constexpr auto resourceVersionPath = ":/bundled-prism-themes/_bundle_version";
-
-    QFile versionResource(resourceVersionPath);
-    if (!versionResource.open(QIODevice::ReadOnly)) {
-        themeDebugLog() << "No bundled Prism themes found in this build.";
-        return;
-    }
-
-    const QString bundledVersion = QString::fromUtf8(versionResource.readAll()).trimmed();
-    if (bundledVersion.isEmpty()) {
-        themeWarningLog() << "Bundled Prism theme version was empty.";
-        return;
-    }
-
     const QDir bundledThemeRoot(resourceRootPath);
     if (!bundledThemeRoot.exists()) {
         themeWarningLog() << "Bundled Prism theme resource root is missing.";

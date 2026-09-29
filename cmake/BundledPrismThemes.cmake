@@ -33,12 +33,9 @@ function(configure_bundled_prism_themes output_variable)
     endif()
 
     set(_generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-    set(_version_file "${_generated_dir}/prism_themes_version.txt")
-    set(_qrc_file "${_generated_dir}/prism_themes.qrc")
+        set(_qrc_file "${_generated_dir}/prism_themes.qrc")
 
     file(MAKE_DIRECTORY "${_generated_dir}")
-    file(WRITE "${_version_file}" "9e921ca23a1838f87e0699517a77da5e92921a11\n")
-
     file(GLOB_RECURSE _theme_files
         CONFIGURE_DEPENDS
         LIST_DIRECTORIES false
@@ -47,7 +44,6 @@ function(configure_bundled_prism_themes output_variable)
     )
 
     file(WRITE "${_qrc_file}" "<RCC>\n    <qresource prefix=\"/bundled-prism-themes\">\n")
-    file(APPEND "${_qrc_file}" "        <file alias=\"_bundle_version\">${_version_file}</file>\n")
 
     foreach(_relative_path IN LISTS _theme_files)
         string(REPLACE "\\" "/" _alias "${_relative_path}")

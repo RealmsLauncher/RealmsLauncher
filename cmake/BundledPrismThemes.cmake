@@ -8,8 +8,7 @@
 # This intentionally does not download anything during CMake configure. The
 # submodule must already be present in the source checkout.
 
-set(Launcher_PRISM_THEMES_COMMIT "9e921ca23a1838f87e0699517a77da5e92921a11" CACHE STRING
-    "Pinned PrismLauncher/Themes commit used by the bundled theme submodule")
+set(Launcher_PRISM_THEMES_COMMIT "9e921ca23a1838f87e0699517a77da5e92921a11")
 
 set(Launcher_PRISM_THEMES_SOURCE_DIR "${PROJECT_SOURCE_DIR}/3rdparty/PrismLauncher-Themes" CACHE PATH
     "PrismLauncher/Themes checkout to bundle into the launcher")
@@ -67,6 +66,7 @@ function(configure_bundled_prism_themes output_variable)
     endforeach()
 
     file(GLOB _license_files
+        CONFIGURE_DEPENDS
         LIST_DIRECTORIES false
         RELATIVE "${_source_root}"
         "${_source_root}/LICENSES/*"

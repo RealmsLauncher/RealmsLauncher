@@ -38,6 +38,7 @@
 #include "ui_AppearanceWidget.h"
 
 #include <DesktopServices.h>
+#include <QFile>
 #include <QGraphicsOpacityEffect>
 #include "BuildConfig.h"
 #include "ui/themes/ITheme.h"

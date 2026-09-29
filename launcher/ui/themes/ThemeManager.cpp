@@ -213,6 +213,7 @@ void ThemeManager::initializeBundledThemes(ITheme* baseTheme)
     QFile versionStamp(bundledThemeRoot.filePath(".version"));
     if (versionStamp.open(QIODevice::ReadOnly)) {
         needsExtraction = QString::fromUtf8(versionStamp.readAll()).trimmed() != bundledVersion;
+        versionStamp.close();
     }
 
     if (needsExtraction) {

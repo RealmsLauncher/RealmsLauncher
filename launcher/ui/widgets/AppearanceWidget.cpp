@@ -38,6 +38,7 @@
 #include "ui_AppearanceWidget.h"
 
 #include <DesktopServices.h>
+#include <QFile>
 #include <QGraphicsOpacityEffect>
 #include "BuildConfig.h"
 #include "ui/themes/ITheme.h"
@@ -186,7 +187,29 @@ void AppearanceWidget::loadThemeSettings()
     for (int i = 0; i < iconThemes.count(); ++i) {
         const IconTheme* theme = iconThemes[i];
 
-        QIcon iconForComboBox = QIcon(theme->path() + "/scalable/settings");
+        QString iconPreviewPath;
+        const QStringList iconPreviewCandidates{
+            "/scalable/settings.svg",
+            "/scalable/settings",
+            "/16x16/settings.png",
+            "/16x16/settings",
+            "/24x24/settings.png",
+            "/24x24/settings",
+            "/48x48/settings.png",
+            "/48x48/settings",
+            "/96x96/settings.png",
+            "/96x96/settings",
+        };
+
+        for (const auto& relativePath : iconPreviewCandidates) {
+            const QString candidate = theme->path() + relativePath;
+            if (QFile::exists(candidate)) {
+                iconPreviewPath = candidate;
+                break;
+            }
+        }
+
+        QIcon iconForComboBox(iconPreviewPath);
         m_ui->iconsComboBox->addItem(iconForComboBox, theme->name(), theme->id());
 
         if (currentIconTheme == theme->id())

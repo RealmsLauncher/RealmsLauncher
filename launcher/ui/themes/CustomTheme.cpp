@@ -37,6 +37,7 @@
 #include <FileSystem.h>
 #include <Json.h>
 #include <QDir>
+#include <QFile>
 #include "ThemeManager.h"
 
 const char* themeFile = "theme.json";
@@ -48,19 +49,20 @@ CustomTheme::CustomTheme(ITheme* baseTheme, QFileInfo& fileInfo, bool isManifest
 {
     if (isManifest) {
         const QDir themeDirectory = fileInfo.dir();
+        const bool isResource = fileInfo.filePath().startsWith(":/");
         m_id = themeDirectory.dirName();
-        m_resourcesPath = themeDirectory.absoluteFilePath("resources");
+        m_resourcesPath = themeDirectory.filePath("resources");
 
         if (!themeDirectory.exists()) {
             themeWarningLog() << "Theme directory for" << m_id << "does not exist. This theme might be invalid";
             return;
         }
 
-        if (!themeDirectory.mkpath("resources")) {
+        if (!isResource && !themeDirectory.mkpath("resources")) {
             themeWarningLog() << "Resources directory for" << m_id << "could not be created";
         }
 
-        auto themeFilePath = fileInfo.absoluteFilePath();
+        auto themeFilePath = fileInfo.filePath();
 
         m_palette = baseTheme->colorScheme();
 
@@ -78,16 +80,11 @@ CustomTheme::CustomTheme(ITheme* baseTheme, QFileInfo& fileInfo, bool isManifest
             return;
         }
 
-        auto qssFilePath = themeDirectory.absoluteFilePath(m_qssFilePath);
-        QFileInfo info(qssFilePath);
-        if (info.isFile()) {
-            try {
-                // TODO: validate qss?
-                m_styleSheet = QString::fromUtf8(FS::read(qssFilePath));
-            } catch (const Exception& e) {
-                themeWarningLog() << "Couldn't load qss:" << e.cause() << "from" << qssFilePath;
-                return;
-            }
+        auto qssFilePath = themeDirectory.filePath(m_qssFilePath);
+        QFile qssFile(qssFilePath);
+        if (qssFile.open(QFile::ReadOnly)) {
+            // TODO: validate qss?
+            m_styleSheet = QString::fromUtf8(qssFile.readAll());
         } else {
             themeDebugLog() << "No theme qss present.";
         }
@@ -171,10 +168,10 @@ QString CustomTheme::tooltip()
 
 bool CustomTheme::read(const QString& path, bool& hasCustomLogColors)
 {
-    QFileInfo pathInfo(path);
-    if (pathInfo.exists() && pathInfo.isFile()) {
+    QFile file(path);
+    if (file.open(QFile::ReadOnly)) {
         try {
-            auto doc = Json::requireDocument(path, "Theme JSON file");
+            auto doc = Json::requireDocument(file.readAll(), "Theme JSON file");
             const QJsonObject root = doc.object();
             m_name = Json::requireString(root, "name", "Theme name");
             m_widgets = Json::requireString(root, "widgets", "Qt widget theme");

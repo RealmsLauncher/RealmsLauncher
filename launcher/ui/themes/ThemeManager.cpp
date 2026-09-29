@@ -207,91 +207,23 @@ void ThemeManager::initializeBundledThemes(ITheme* baseTheme)
         return;
     }
 
-    QDir bundledThemeRoot(m_applicationThemeFolder.filePath(".builtin"));
-    if (!bundledThemeRoot.mkpath(".")) {
-        themeWarningLog() << "Couldn't create bundled Prism theme directory:" << bundledThemeRoot.absolutePath();
+    const QDir bundledThemeRoot(resourceRootPath);
+    if (!bundledThemeRoot.exists()) {
+        themeWarningLog() << "Bundled Prism theme resource root is missing.";
         return;
     }
 
-    bool needsExtraction = true;
-    QFile versionStamp(bundledThemeRoot.filePath(".version"));
-    if (versionStamp.open(QIODevice::ReadOnly)) {
-        needsExtraction = QString::fromUtf8(versionStamp.readAll()).trimmed() != bundledVersion;
-        versionStamp.close();
-    }
+    const QStringList themeDirectories =
+        bundledThemeRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 
-    if (needsExtraction) {
-        themeDebugLog() << "Extracting bundled Prism themes from commit" << bundledVersion;
-
-        if (!bundledThemeRoot.removeRecursively()) {
-            themeWarningLog() << "Couldn't replace bundled Prism themes at:" << bundledThemeRoot.absolutePath();
-            return;
-        }
-
-        if (!QDir().mkpath(bundledThemeRoot.absolutePath())) {
-            themeWarningLog() << "Couldn't recreate bundled Prism theme directory:" << bundledThemeRoot.absolutePath();
-            return;
-        }
-
-        QDir resourceRoot(resourceRootPath);
-        QDirIterator resourceIterator(resourceRootPath, QDir::Files, QDirIterator::Subdirectories);
-        bool extractionSucceeded = true;
-
-        while (resourceIterator.hasNext()) {
-            const QString resourcePath = resourceIterator.next();
-            const QFileInfo resourceInfo(resourcePath);
-            const QString relativePath = resourceRoot.relativeFilePath(resourceInfo.filePath());
-
-            if (relativePath == "_bundle_version") {
-                continue;
-            }
-
-            const QString destinationPath = bundledThemeRoot.filePath(relativePath);
-            QDir destinationDirectory = QFileInfo(destinationPath).dir();
-
-            if (!destinationDirectory.mkpath(".")) {
-                themeWarningLog() << "Couldn't create bundled Prism theme resource directory:"
-                                  << destinationDirectory.absolutePath();
-                extractionSucceeded = false;
-                continue;
-            }
-
-            if (QFileInfo::exists(destinationPath) && !QFile::remove(destinationPath)) {
-                themeWarningLog() << "Couldn't replace bundled Prism theme resource:" << destinationPath;
-                extractionSucceeded = false;
-                continue;
-            }
-
-            if (!QFile::copy(resourcePath, destinationPath)) {
-                themeWarningLog() << "Couldn't extract bundled Prism theme resource:"
-                                  << resourcePath << "to" << destinationPath;
-                extractionSucceeded = false;
-            }
-        }
-
-        if (!extractionSucceeded) {
-            themeWarningLog() << "Bundled Prism theme extraction failed.";
-            return;
-        }
-
-        QFile newVersionStamp(bundledThemeRoot.filePath(".version"));
-        if (!newVersionStamp.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            themeWarningLog() << "Couldn't write bundled Prism theme version stamp.";
-            return;
-        }
-
-        newVersionStamp.write(bundledVersion.toUtf8());
-    }
-
-    QDirIterator themeIterator(bundledThemeRoot.path(), QDir::Dirs | QDir::NoDotAndDotDot);
-    while (themeIterator.hasNext()) {
-        QDir themeDirectory(themeIterator.next());
-        QFileInfo themeJson(themeDirectory.absoluteFilePath("theme.json"));
-        if (!themeJson.isFile()) {
+    for (const auto& themeId : themeDirectories) {
+        const QString themeJsonPath = bundledThemeRoot.filePath(themeId + "/theme.json");
+        if (!QFile::exists(themeJsonPath)) {
             continue;
         }
 
-        themeDebugLog() << "Loading Bundled Theme from:" << themeJson.absoluteFilePath();
+        QFileInfo themeJson(themeJsonPath);
+        themeDebugLog() << "Loading Bundled Theme from:" << themeJsonPath;
         addTheme(std::make_unique<CustomTheme>(baseTheme, themeJson, true));
     }
 }

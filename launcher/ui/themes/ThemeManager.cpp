@@ -21,6 +21,8 @@
 #include <QApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <QIcon>
 #include <QImageReader>
 #include <QStyle>
@@ -133,7 +135,6 @@ void ThemeManager::initializeIcons()
 
 void ThemeManager::initializeWidgets()
 {
-    themeDebugLog() << "<> Initializing Widget Themes";
     themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<SystemTheme>(m_defaultStyle, m_defaultPalette, true));
     auto darkThemeId = addTheme(std::make_unique<DarkTheme>());
     themeDebugLog() << "Loading Built-in Theme:" << darkThemeId;
@@ -153,8 +154,9 @@ void ThemeManager::initializeWidgets()
     // TODO: need some way to differentiate same name themes in different subdirectories
     //  (maybe smaller grey text next to theme name in dropdown?)
 
-    if (!m_applicationThemeFolder.mkpath("."))
+    if (!m_applicationThemeFolder.mkpath(".")) {
         themeWarningLog() << "Couldn't create theme folder";
+    }
     themeDebugLog() << "Theme Folder Path:" << m_applicationThemeFolder.absolutePath();
 
     QDirIterator directoryIterator(m_applicationThemeFolder.path(), QDir::Dirs | QDir::NoDotAndDotDot);
@@ -177,7 +179,116 @@ void ThemeManager::initializeWidgets()
         }
     }
 
+    // User themes are loaded first so a user-installed theme can intentionally
+    // use the same id as a bundled theme without the bundle taking precedence.
+    initializeBundledThemes(getTheme(darkThemeId));
+
     themeDebugLog() << "<> Widget themes initialized.";
+}
+
+void ThemeManager::initializeBundledThemes(ITheme* baseTheme)
+{
+    constexpr auto resourceRootPath = ":/bundled-prism-themes";
+    constexpr auto resourceVersionPath = ":/bundled-prism-themes/_bundle_version";
+
+    QFile versionResource(resourceVersionPath);
+    if (!versionResource.open(QIODevice::ReadOnly)) {
+        themeDebugLog() << "No bundled Prism themes found in this build.";
+        return;
+    }
+
+    const QString bundledVersion = QString::fromUtf8(versionResource.readAll()).trimmed();
+    if (bundledVersion.isEmpty()) {
+        themeWarningLog() << "Bundled Prism theme version was empty.";
+        return;
+    }
+
+    QDir bundledThemeRoot(m_applicationThemeFolder.filePath(".builtin"));
+    if (!bundledThemeRoot.mkpath(".")) {
+        themeWarningLog() << "Couldn't create bundled Prism theme directory:" << bundledThemeRoot.absolutePath();
+        return;
+    }
+
+    bool needsExtraction = true;
+    QFile versionStamp(bundledThemeRoot.filePath(".version"));
+    if (versionStamp.open(QIODevice::ReadOnly)) {
+        needsExtraction = QString::fromUtf8(versionStamp.readAll()).trimmed() != bundledVersion;
+    }
+
+    if (needsExtraction) {
+        themeDebugLog() << "Extracting bundled Prism themes from commit" << bundledVersion;
+
+        if (!bundledThemeRoot.removeRecursively()) {
+            themeWarningLog() << "Couldn't replace bundled Prism themes at:" << bundledThemeRoot.absolutePath();
+            return;
+        }
+
+        if (!QDir().mkpath(bundledThemeRoot.absolutePath())) {
+            themeWarningLog() << "Couldn't recreate bundled Prism theme directory:" << bundledThemeRoot.absolutePath();
+            return;
+        }
+
+        QDir resourceRoot(resourceRootPath);
+        QDirIterator resourceIterator(resourceRootPath, QDir::Files, QDirIterator::Subdirectories);
+        bool extractionSucceeded = true;
+
+        while (resourceIterator.hasNext()) {
+            const QString resourcePath = resourceIterator.next();
+            const QFileInfo resourceInfo(resourcePath);
+            const QString relativePath = resourceRoot.relativeFilePath(resourceInfo.filePath());
+
+            if (relativePath == "_bundle_version") {
+                continue;
+            }
+
+            const QString destinationPath = bundledThemeRoot.filePath(relativePath);
+            QDir destinationDirectory = QFileInfo(destinationPath).dir();
+
+            if (!destinationDirectory.mkpath(".")) {
+                themeWarningLog() << "Couldn't create bundled Prism theme resource directory:"
+                                  << destinationDirectory.absolutePath();
+                extractionSucceeded = false;
+                continue;
+            }
+
+            if (QFileInfo::exists(destinationPath) && !QFile::remove(destinationPath)) {
+                themeWarningLog() << "Couldn't replace bundled Prism theme resource:" << destinationPath;
+                extractionSucceeded = false;
+                continue;
+            }
+
+            if (!QFile::copy(resourcePath, destinationPath)) {
+                themeWarningLog() << "Couldn't extract bundled Prism theme resource:"
+                                  << resourcePath << "to" << destinationPath;
+                extractionSucceeded = false;
+            }
+        }
+
+        if (!extractionSucceeded) {
+            themeWarningLog() << "Bundled Prism theme extraction failed.";
+            return;
+        }
+
+        QFile newVersionStamp(bundledThemeRoot.filePath(".version"));
+        if (!newVersionStamp.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            themeWarningLog() << "Couldn't write bundled Prism theme version stamp.";
+            return;
+        }
+
+        newVersionStamp.write(bundledVersion.toUtf8());
+    }
+
+    QDirIterator themeIterator(bundledThemeRoot.path(), QDir::Dirs | QDir::NoDotAndDotDot);
+    while (themeIterator.hasNext()) {
+        QDir themeDirectory(themeIterator.next());
+        QFileInfo themeJson(themeDirectory.absoluteFilePath("theme.json"));
+        if (!themeJson.isFile()) {
+            continue;
+        }
+
+        themeDebugLog() << "Loading Bundled Theme from:" << themeJson.absoluteFilePath();
+        addTheme(std::make_unique<CustomTheme>(baseTheme, themeJson, true));
+    }
 }
 
 #ifndef Q_OS_MACOS

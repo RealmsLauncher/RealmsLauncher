@@ -24,11 +24,11 @@ function(_append_bundled_prism_directory qrc_file source_root source_directory r
     )
 
     file(APPEND "${qrc_file}"
-        "    <qresource prefix=\"${resource_prefix}\">\\n"
+        "    <qresource prefix=\"${resource_prefix}\">\n"
     )
 
     foreach(_relative_path IN LISTS _files)
-        string(REPLACE "\\\\" "/" _alias "${_relative_path}")
+        string(REPLACE "\\" "/" _alias "${_relative_path}")
         string(REPLACE "&" "&amp;" _alias "${_alias}")
         string(REPLACE "<" "&lt;" _alias "${_alias}")
         string(REPLACE ">" "&gt;" _alias "${_alias}")
@@ -40,11 +40,11 @@ function(_append_bundled_prism_directory qrc_file source_root source_directory r
         string(REPLACE ">" "&gt;" _source_xml "${_source_xml}")
 
         file(APPEND "${qrc_file}"
-            "        <file alias=\"${_alias}\">${_source_xml}</file>\\n"
+            "        <file alias=\"${_alias}\">${_source_xml}</file>\n"
         )
     endforeach()
 
-    file(APPEND "${qrc_file}" "    </qresource>\\n")
+    file(APPEND "${qrc_file}" "    </qresource>\n")
 endfunction()
 
 function(_append_bundled_prism_licenses qrc_file source_root)
@@ -56,11 +56,11 @@ function(_append_bundled_prism_licenses qrc_file source_root)
     )
 
     file(APPEND "${qrc_file}"
-        "    <qresource prefix=\"/bundled-prism-themes\">\\n"
+        "    <qresource prefix=\"/bundled-prism-themes\">\n"
     )
 
     foreach(_relative_path IN LISTS _license_files)
-        string(REPLACE "\\\\" "/" _alias "${_relative_path}")
+        string(REPLACE "\\" "/" _alias "${_relative_path}")
         string(REPLACE "&" "&amp;" _alias "${_alias}")
         string(REPLACE "<" "&lt;" _alias "${_alias}")
         string(REPLACE ">" "&gt;" _alias "${_alias}")
@@ -72,11 +72,11 @@ function(_append_bundled_prism_licenses qrc_file source_root)
         string(REPLACE ">" "&gt;" _source_xml "${_source_xml}")
 
         file(APPEND "${qrc_file}"
-            "        <file alias=\"_licenses/${_alias}\">${_source_xml}</file>\\n"
+            "        <file alias=\"_licenses/${_alias}\">${_source_xml}</file>\n"
         )
     endforeach()
 
-    file(APPEND "${qrc_file}" "    </qresource>\\n")
+    file(APPEND "${qrc_file}" "    </qresource>\n")
 endfunction()
 
 function(configure_bundled_prism_themes output_variable)
@@ -101,7 +101,7 @@ function(configure_bundled_prism_themes output_variable)
     set(_qrc_file "${_generated_dir}/prism_themes.qrc")
 
     file(MAKE_DIRECTORY "${_generated_dir}")
-    file(WRITE "${_qrc_file}" "<RCC>\\n")
+    file(WRITE "${_qrc_file}" "<RCC>\n")
 
     # Application/widget themes.
     _append_bundled_prism_directory(
@@ -130,6 +130,6 @@ function(configure_bundled_prism_themes output_variable)
 
     _append_bundled_prism_licenses("${_qrc_file}" "${_source_root}")
 
-    file(APPEND "${_qrc_file}" "</RCC>\\n")
+    file(APPEND "${_qrc_file}" "</RCC>\n")
     set(${output_variable} "${_qrc_file}" PARENT_SCOPE)
 endfunction()

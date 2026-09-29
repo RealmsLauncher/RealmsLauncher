@@ -40,7 +40,10 @@
 ThemeManager::ThemeManager()
 {
     QIcon::setFallbackThemeName(QIcon::themeName());
-    QIcon::setThemeSearchPaths(QIcon::themeSearchPaths() << m_iconThemeFolder.path());
+
+    auto iconThemeSearchPaths = QIcon::themeSearchPaths();
+    iconThemeSearchPaths << m_iconThemeFolder.path() << ":/bundled-prism-icons";
+    QIcon::setThemeSearchPaths(iconThemeSearchPaths);
 
     themeDebugLog() << "Determining System Widget Theme...";
     const auto& style = QApplication::style();
@@ -130,7 +133,36 @@ void ThemeManager::initializeIcons()
         themeDebugLog() << "Loaded Custom Icon Theme from" << dir.path();
     }
 
+    // Load bundled community icon themes after user themes so a user-installed
+    // theme can intentionally use the same id without the bundle taking precedence.
+    initializeBundledIcons();
+
     themeDebugLog() << "<> Icon themes initialized.";
+}
+
+void ThemeManager::initializeBundledIcons()
+{
+    constexpr auto resourceRootPath = ":/bundled-prism-icons";
+    const QDir bundledIconRoot(resourceRootPath);
+    if (!bundledIconRoot.exists()) {
+        themeWarningLog() << "Bundled Prism icon theme resource root is missing.";
+        return;
+    }
+
+    const QStringList iconThemeDirectories =
+        bundledIconRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+
+    for (const auto& iconThemeId : iconThemeDirectories) {
+        QDir dir(bundledIconRoot.filePath(iconThemeId));
+        IconTheme theme(iconThemeId, dir.path());
+        if (!theme.load()) {
+            themeWarningLog() << "Couldn't load bundled icon theme" << iconThemeId;
+            continue;
+        }
+
+        addIconTheme(std::move(theme));
+        themeDebugLog() << "Loaded Bundled Icon Theme" << iconThemeId;
+    }
 }
 
 void ThemeManager::initializeWidgets()
@@ -375,6 +407,56 @@ void ThemeManager::initializeCatPacks()
                 addCatPack(std::unique_ptr<CatPack>(new JsonCatPack(manifest)));
             } catch (const Exception& e) {
                 themeWarningLog() << "Couldn't load catpack json:" << e.cause();
+            }
+        } else {
+            loadFiles(dir);
+        }
+    }
+
+    // Load bundled community cat packs after user cat packs so a user-installed
+    // pack can intentionally use the same id without the bundle taking precedence.
+    initializeBundledCatPacks();
+}
+
+void ThemeManager::initializeBundledCatPacks()
+{
+    constexpr auto resourceRootPath = ":/bundled-prism-cats";
+    const QDir bundledCatRoot(resourceRootPath);
+    if (!bundledCatRoot.exists()) {
+        themeWarningLog() << "Bundled Prism cat pack resource root is missing.";
+        return;
+    }
+
+    QStringList supportedImageFormats;
+    for (auto format : QImageReader::supportedImageFormats()) {
+        supportedImageFormats.append("*." + format);
+    }
+
+    auto loadFiles = [this, supportedImageFormats](QDir dir) {
+        QDirIterator imageFileIterator(dir.absoluteFilePath(""), supportedImageFormats, QDir::Files);
+        while (imageFileIterator.hasNext()) {
+            QFile catFile(imageFileIterator.next());
+            QFileInfo catFileInfo(catFile);
+            themeDebugLog() << "Loading Bundled CatPack from:" << catFileInfo.absoluteFilePath();
+            addCatPack(std::unique_ptr<CatPack>(new FileCatPack(catFileInfo)));
+        }
+    };
+
+    loadFiles(bundledCatRoot);
+
+    const QStringList catPackDirectories =
+        bundledCatRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+
+    for (const auto& catPackId : catPackDirectories) {
+        QDir dir(bundledCatRoot.filePath(catPackId));
+        QFileInfo manifest(dir.absoluteFilePath("catpack.json"));
+
+        if (manifest.isFile()) {
+            try {
+                themeDebugLog() << "Loading bundled cat pack manifest from:" << manifest.absoluteFilePath();
+                addCatPack(std::unique_ptr<CatPack>(new JsonCatPack(manifest)));
+            } catch (const Exception& e) {
+                themeWarningLog() << "Couldn't load bundled catpack json:" << e.cause();
             }
         } else {
             loadFiles(dir);

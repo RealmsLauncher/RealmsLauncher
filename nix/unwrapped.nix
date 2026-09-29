@@ -49,6 +49,7 @@ stdenv.mkDerivation {
 
       ../buildconfig
       ../cmake
+      ../3rdparty/PrismLauncher-Themes
       ../launcher
       ../libraries
       ../program_info

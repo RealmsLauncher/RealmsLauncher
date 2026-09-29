@@ -34,7 +34,6 @@ on:
 
       # Files
       - "CMakeLists.txt"
-
       # Workflows
       - ".github/workflows/nix.yml"
   pull_request:

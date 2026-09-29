@@ -79,6 +79,7 @@ class ThemeManager {
     QString addCatPack(std::unique_ptr<CatPack> catPack);
     void initializeIcons();
     void initializeWidgets();
+    void initializeBundledThemes(ITheme* baseTheme);
 
     // On non-Mac systems, this is a no-op.
     void setTitlebarColorOnMac(WId windowId, QColor color);

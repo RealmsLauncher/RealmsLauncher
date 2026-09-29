@@ -9,6 +9,7 @@
   kdePackages,
   libnbtplusplus,
   ninja,
+  prismThemes,
   qrencode,
   self,
   stripJavaArchivesHook,
@@ -81,6 +82,7 @@ stdenv.mkDerivation {
   ++ lib.optional stdenv.hostPlatform.isLinux gamemode;
 
   cmakeFlags = [
+    (lib.cmakeFeature "Launcher_PRISM_THEMES_SOURCE_DIR" (toString prismThemes))
     # downstream branding
     (lib.cmakeFeature "Launcher_BUILD_PLATFORM" "nixpkgs")
   ]

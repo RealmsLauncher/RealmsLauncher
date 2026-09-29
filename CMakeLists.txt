@@ -22,6 +22,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
+include(BundledPrismThemes)
+configure_bundled_prism_themes(Launcher_BUNDLED_PRISM_THEMES_QRC)
+
 # Output all executables and shared libs in the main build folder, not in subfolders.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 if(UNIX)

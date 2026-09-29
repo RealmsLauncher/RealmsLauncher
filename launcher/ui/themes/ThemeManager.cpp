@@ -21,6 +21,8 @@
 #include <QApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <QIcon>
 #include <QImageReader>
 #include <QStyle>
@@ -133,7 +135,6 @@ void ThemeManager::initializeIcons()
 
 void ThemeManager::initializeWidgets()
 {
-    themeDebugLog() << "<> Initializing Widget Themes";
     themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<SystemTheme>(m_defaultStyle, m_defaultPalette, true));
     auto darkThemeId = addTheme(std::make_unique<DarkTheme>());
     themeDebugLog() << "Loading Built-in Theme:" << darkThemeId;
@@ -153,8 +154,9 @@ void ThemeManager::initializeWidgets()
     // TODO: need some way to differentiate same name themes in different subdirectories
     //  (maybe smaller grey text next to theme name in dropdown?)
 
-    if (!m_applicationThemeFolder.mkpath("."))
+    if (!m_applicationThemeFolder.mkpath(".")) {
         themeWarningLog() << "Couldn't create theme folder";
+    }
     themeDebugLog() << "Theme Folder Path:" << m_applicationThemeFolder.absolutePath();
 
     QDirIterator directoryIterator(m_applicationThemeFolder.path(), QDir::Dirs | QDir::NoDotAndDotDot);
@@ -177,7 +179,35 @@ void ThemeManager::initializeWidgets()
         }
     }
 
+    // User themes are loaded first so a user-installed theme can intentionally
+    // use the same id as a bundled theme without the bundle taking precedence.
+    initializeBundledThemes(getTheme(darkThemeId));
+
     themeDebugLog() << "<> Widget themes initialized.";
+}
+
+void ThemeManager::initializeBundledThemes(ITheme* baseTheme)
+{
+    constexpr auto resourceRootPath = ":/bundled-prism-themes";
+    const QDir bundledThemeRoot(resourceRootPath);
+    if (!bundledThemeRoot.exists()) {
+        themeWarningLog() << "Bundled Prism theme resource root is missing.";
+        return;
+    }
+
+    const QStringList themeDirectories =
+        bundledThemeRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+
+    for (const auto& themeId : themeDirectories) {
+        const QString themeJsonPath = bundledThemeRoot.filePath(themeId + "/theme.json");
+        if (!QFile::exists(themeJsonPath)) {
+            continue;
+        }
+
+        QFileInfo themeJson(themeJsonPath);
+        themeDebugLog() << "Loading Bundled Theme from:" << themeJsonPath;
+        addTheme(std::make_unique<CustomTheme>(baseTheme, themeJson, true));
+    }
 }
 
 #ifndef Q_OS_MACOS

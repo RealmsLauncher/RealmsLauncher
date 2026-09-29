@@ -32,7 +32,25 @@
     "root": {
       "inputs": {
         "libnbtplusplus": "libnbtplusplus",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "prismThemes": "prismThemes"
+      }
+    },
+    "prismThemes": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1781557389,
+        "narHash": "sha256-V6mkItSVA/TSC0yWKvcps/ewAC0nSd1KSBr8Pvdv8z8=",
+        "owner": "PrismLauncher",
+        "repo": "Themes",
+        "rev": "9e921ca23a1838f87e0699517a77da5e92921a11",
+        "type": "github"
+      },
+      "original": {
+        "owner": "PrismLauncher",
+        "repo": "Themes",
+        "rev": "9e921ca23a1838f87e0699517a77da5e92921a11",
+        "type": "github"
       }
     }
   },

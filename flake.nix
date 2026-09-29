@@ -15,6 +15,11 @@
       url = "github:PrismLauncher/libnbtplusplus";
       flake = false;
     };
+
+    prismThemes = {
+      url = "github:PrismLauncher/Themes/9e921ca23a1838f87e0699517a77da5e92921a11";
+      flake = false;
+    };
   };
 
   outputs =
@@ -22,6 +27,7 @@
       self,
       nixpkgs,
       libnbtplusplus,
+      prismThemes,
     }:
 
     let
@@ -197,6 +203,7 @@
             inherit (llvm) stdenv;
             inherit
               libnbtplusplus
+              prismThemes
               self
               ;
           };

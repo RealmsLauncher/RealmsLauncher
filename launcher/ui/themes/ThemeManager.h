@@ -73,11 +73,13 @@ class ThemeManager {
 
     void initializeThemes();
     void initializeCatPacks();
+    void initializeBundledCatPacks();
     QString addTheme(std::unique_ptr<ITheme> theme);
     ITheme* getTheme(QString themeId);
     QString addIconTheme(IconTheme theme);
     QString addCatPack(std::unique_ptr<CatPack> catPack);
     void initializeIcons();
+    void initializeBundledIcons();
     void initializeWidgets();
     void initializeBundledThemes(ITheme* baseTheme);
 

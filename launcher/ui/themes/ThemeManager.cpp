@@ -162,10 +162,6 @@ void ThemeManager::initializeWidgets()
     QDirIterator directoryIterator(m_applicationThemeFolder.path(), QDir::Dirs | QDir::NoDotAndDotDot);
     while (directoryIterator.hasNext()) {
         QDir dir(directoryIterator.next());
-        if (dir.dirName() == ".builtin") {
-            continue;
-        }
-
         QFileInfo themeJson(dir.absoluteFilePath("theme.json"));
         if (themeJson.exists()) {
             // Load "theme.json" based themes

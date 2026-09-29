@@ -8,8 +8,6 @@
 # This intentionally does not download anything during CMake configure. The
 # submodule must already be present in the source checkout.
 
-set(Launcher_PRISM_THEMES_COMMIT "9e921ca23a1838f87e0699517a77da5e92921a11")
-
 set(Launcher_PRISM_THEMES_SOURCE_DIR "${PROJECT_SOURCE_DIR}/3rdparty/PrismLauncher-Themes" CACHE PATH
     "PrismLauncher/Themes checkout to bundle into the launcher")
 
@@ -33,7 +31,7 @@ function(configure_bundled_prism_themes output_variable)
     endif()
 
     set(_generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-        set(_qrc_file "${_generated_dir}/prism_themes.qrc")
+    set(_qrc_file "${_generated_dir}/prism_themes.qrc")
 
     file(MAKE_DIRECTORY "${_generated_dir}")
     file(GLOB_RECURSE _theme_files

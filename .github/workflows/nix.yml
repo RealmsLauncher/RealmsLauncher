@@ -34,9 +34,6 @@ on:
 
       # Files
       - "CMakeLists.txt"
-      - "3rdparty/**"
-      - ".gitmodules"
-
       # Workflows
       - ".github/workflows/nix.yml"
   pull_request:
@@ -98,8 +95,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31

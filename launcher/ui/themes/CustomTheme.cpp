@@ -36,6 +36,7 @@
 #include "CustomTheme.h"
 #include <FileSystem.h>
 #include <Json.h>
+#include <QDir>
 #include "ThemeManager.h"
 
 const char* themeFile = "theme.json";
@@ -46,21 +47,20 @@ const char* themeFile = "theme.json";
 CustomTheme::CustomTheme(ITheme* baseTheme, QFileInfo& fileInfo, bool isManifest)
 {
     if (isManifest) {
-        m_id = fileInfo.dir().dirName();
+        const QDir themeDirectory = fileInfo.dir();
+        m_id = themeDirectory.dirName();
+        m_resourcesPath = themeDirectory.absoluteFilePath("resources");
 
-        QString path = FS::PathCombine("themes", m_id);
-        QString pathResources = FS::PathCombine("themes", m_id, "resources");
-
-        if (!FS::ensureFolderPathExists(path)) {
-            themeWarningLog() << "Theme directory for" << m_id << "could not be created. This theme might be invalid";
+        if (!themeDirectory.exists()) {
+            themeWarningLog() << "Theme directory for" << m_id << "does not exist. This theme might be invalid";
             return;
         }
 
-        if (!FS::ensureFolderPathExists(pathResources)) {
+        if (!themeDirectory.mkpath("resources")) {
             themeWarningLog() << "Resources directory for" << m_id << "could not be created";
         }
 
-        auto themeFilePath = FS::PathCombine(path, themeFile);
+        auto themeFilePath = fileInfo.absoluteFilePath();
 
         m_palette = baseTheme->colorScheme();
 
@@ -78,7 +78,7 @@ CustomTheme::CustomTheme(ITheme* baseTheme, QFileInfo& fileInfo, bool isManifest
             return;
         }
 
-        auto qssFilePath = FS::PathCombine(path, m_qssFilePath);
+        auto qssFilePath = themeDirectory.absoluteFilePath(m_qssFilePath);
         QFileInfo info(qssFilePath);
         if (info.isFile()) {
             try {
@@ -119,9 +119,8 @@ CustomTheme::CustomTheme(ITheme* baseTheme, QFileInfo& fileInfo, bool isManifest
 
 QStringList CustomTheme::searchPaths()
 {
-    QString pathResources = FS::PathCombine("themes", m_id, "resources");
-    if (QFileInfo::exists(pathResources))
-        return { pathResources };
+    if (QFileInfo::exists(m_resourcesPath))
+        return { m_resourcesPath };
 
     return {};
 }

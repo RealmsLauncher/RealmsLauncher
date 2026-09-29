@@ -66,6 +66,7 @@ class CustomTheme : public ITheme {
     QString m_id;
     QString m_widgets;
     QString m_qssFilePath;
+    QString m_resourcesPath;
     LogColors m_logColors;
     /**
      * The tooltip could be defined in the theme json,

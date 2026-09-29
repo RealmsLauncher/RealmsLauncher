@@ -100,6 +100,29 @@ function(configure_bundled_prism_themes output_variable)
             "        <file alias=\"${_alias}\">${_source_xml}</file>\n")
     endforeach()
 
+    # Keep the upstream license texts available in the bundled resource set.
+    file(GLOB _license_files
+        LIST_DIRECTORIES false
+        RELATIVE "${_source_root}"
+        "${_source_root}/LICENSES/*"
+    )
+
+    foreach(_relative_path IN LISTS _license_files)
+        string(REPLACE "\\" "/" _alias "${_relative_path}")
+        string(REPLACE "&" "&amp;" _alias "${_alias}")
+        string(REPLACE "<" "&lt;" _alias "${_alias}")
+        string(REPLACE ">" "&gt;" _alias "${_alias}")
+
+        set(_source_file "${_source_root}/${_relative_path}")
+        file(TO_CMAKE_PATH "${_source_file}" _source_file)
+        string(REPLACE "&" "&amp;" _source_xml "${_source_file}")
+        string(REPLACE "<" "&lt;" _source_xml "${_source_xml}")
+        string(REPLACE ">" "&gt;" _source_xml "${_source_xml}")
+
+        file(APPEND "${_qrc_file}"
+            "        <file alias=\"_licenses/${_alias}\">${_source_xml}</file>\n")
+    endforeach()
+
     file(APPEND "${_qrc_file}" "    </qresource>\n</RCC>\n")
 
     set(${output_variable} "${_qrc_file}" PARENT_SCOPE)
